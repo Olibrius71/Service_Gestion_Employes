@@ -20,12 +20,12 @@
       dockerfile: GestionEmps.API/Dockerfile # chemin vers le Dockerfile du projet API
     container_name: sge_api
     ports:
-      - "5000:80" # mappe le port 80 du conteneur sur 5000 de l'hôte
+      - "5000:8080" # mappe le port 80 ou 8080 du conteneur sur 5000 de l'hôte
     depends_on:
       - sge.postgres # démarre postgres avant l'api (ordre, pas garantie de readiness)
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=sgedb;Username=sgeuser;Password=sgepassword
+      - ConnectionStrings__DefaultConnection=Host=sge.postgres;Database=sgedb;Username=sgeuser;Password=sgepassword
     networks:
       - sge_network
 
