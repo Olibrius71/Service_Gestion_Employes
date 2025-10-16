@@ -1,5 +1,10 @@
+using GestionEmps.Application.Interfaces.Repositories;
+using GestionEmps.Application.Interfaces.Services;
 using Microsoft.EntityFrameworkCore;
 using GestionEmps.Infrastructure.Data;
+using GestionEmps.Application.Mappings;
+using GestionEmps.Infrastructure.Repositories;
+using GestionEmps.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +14,14 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 // Ajouter DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
 
+// Enregistrer AutoMapper dans le container d’injection de dépendances
+builder.Services.AddAutoMapper(cfg => { }, typeof(MappingProfile).Assembly);
+
 // Add services to the container.
+builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddControllers();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
