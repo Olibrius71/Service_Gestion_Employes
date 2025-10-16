@@ -1,0 +1,31 @@
+meta {
+  name: Create Employee
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8005/api/employees
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com",
+    "phoneNumber": "1234567890",
+    "address": "123 Main Street",
+    "position": "Senior Developer",
+    "salary": 75000,
+    "hireDate": "2025-01-15T00:00:00",
+    "departmentId": 3
+  }
+}
+
+

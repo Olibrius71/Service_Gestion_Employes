@@ -1,0 +1,18 @@
+meta {
+  name: List Employees Paginated
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8005/api/employees?pageIndex=1&pageSize=5
+  body: none
+  auth: none
+}
+
+params:query {
+  pageIndex: 1
+  pageSize: 5
+}
+
+

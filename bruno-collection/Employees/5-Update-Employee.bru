@@ -1,0 +1,26 @@
+meta {
+  name: Update Employee
+  type: http
+  seq: 5
+}
+
+put {
+  url: http://localhost:8005/api/employees/1
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "firstName": "John",
+    "lastName": "Doe",
+    "position": "Lead Developer",
+    "salary": 85000
+  }
+}
+
+

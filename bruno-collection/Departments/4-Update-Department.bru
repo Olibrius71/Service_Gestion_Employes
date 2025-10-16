@@ -1,0 +1,24 @@
+meta {
+  name: Update Department
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://localhost:8005/api/departments/3
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "IT Department Updated",
+    "description": "Updated Information Technology Department"
+  }
+}
+
+

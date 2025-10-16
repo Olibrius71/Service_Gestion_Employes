@@ -1,0 +1,11 @@
+{
+  "version": "1",
+  "name": "SGE API - Service Gestion Employés",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
+
+

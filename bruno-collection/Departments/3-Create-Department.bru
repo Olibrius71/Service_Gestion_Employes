@@ -1,0 +1,25 @@
+meta {
+  name: Create Department
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8005/api/departments
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Finance Department",
+    "code": "FIN001",
+    "description": "Finance and Accounting Department"
+  }
+}
+
+
