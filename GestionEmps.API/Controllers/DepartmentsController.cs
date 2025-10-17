@@ -63,8 +63,7 @@ public class DepartmentsController(IDepartmentService departmentService) : Contr
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, DepartmentUpdateDto dto, CancellationToken cancellationToken)
     {
-        var ok = await departmentService.UpdateAsync(id, dto,
-        cancellationToken);
+        var ok = await departmentService.UpdateAsync(id, dto, cancellationToken);
         if (!ok) return NotFound();
         return NoContent();
     }

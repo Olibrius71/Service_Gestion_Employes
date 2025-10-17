@@ -68,12 +68,10 @@ public class DepartmentService(IDepartmentRepository departmentRepository, IMapp
     /// <returns>A boolean value indicating whether the update was successful.</returns>
     public async Task<bool> UpdateAsync(int id, DepartmentUpdateDto dto, CancellationToken cancellationToken = default)
     {
-        var entity = await departmentRepository.GetByIdAsync(id,
-        cancellationToken);
+        var entity = await departmentRepository.GetByIdAsync(id, cancellationToken);
         if (entity == null) return false;
         mapper.Map(dto, entity);
-        await departmentRepository.UpdateAsync(entity,
-        cancellationToken);
+        await departmentRepository.UpdateAsync(entity, cancellationToken);
         return true;
     }
     

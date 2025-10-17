@@ -88,7 +88,10 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
     /// <returns>A task that represents the asynchronous operation. The task result indicates whether the update operation was successful.</returns>
     public async Task<bool> UpdateAsync(int id, EmployeeUpdateDto dto, CancellationToken cancellationToken = default)
     {
-        // TODO
+        var entity = await employeeRepository.GetByIdAsync(id, cancellationToken);
+        if (entity == null) return false;
+        mapper.Map(dto, entity);
+        await employeeRepository.UpdateAsync(entity, cancellationToken);
         return true;
     }
     /// <summary>
@@ -99,7 +102,9 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
     /// <returns>A task that represents the asynchronous operation. The task result contains a boolean value indicating whether the deletion was successful.</returns>
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        // TODO
+        var entity = await employeeRepository.GetByIdAsync(id, cancellationToken);
+        if (entity == null) return false;
+        await employeeRepository.DeleteAsync(entity.Id, cancellationToken);
         return true;
     }
 }

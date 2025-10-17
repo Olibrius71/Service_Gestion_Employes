@@ -103,7 +103,8 @@ ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, EmployeeUpdateDto dto, CancellationToken cancellationToken)
     {
-        // TODO
+        var ok = await employeeService.UpdateAsync(id, dto, cancellationToken);
+        if (!ok) return NotFound();
         return NoContent();
     }
     
@@ -118,7 +119,8 @@ ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        // TODO
+        var ok = await employeeService.DeleteAsync(id, cancellationToken);
+        if (!ok) return NotFound();
         return NoContent();
     }
 }
