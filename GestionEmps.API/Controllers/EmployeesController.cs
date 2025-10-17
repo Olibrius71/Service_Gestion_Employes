@@ -10,7 +10,7 @@ namespace SGE.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class EmployeesController(IEmployeeService employeeService) : ControllerBase
+public class EmployeesController(IEmployeeService employeeService, IExcelService excelService, IDepartmentService departmentService) : ControllerBase
 {
     /// <summary>
     /// Retrieves all employees or a paginated list.
@@ -117,6 +117,157 @@ public class EmployeesController(IEmployeeService employeeService) : ControllerB
         var ok = await employeeService.DeleteAsync(id, cancellationToken);
         if (!ok) return NotFound();
         return NoContent();
+    }
+
+    /// <summary>
+    /// Exports all employees to an Excel file.
+    /// </summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>An Excel file containing all employee data.</returns>
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportToExcel(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var employees = await employeeService.GetAllAsync(cancellationToken);
+            var excelBytes = await excelService.ExportEmployeesToExcelAsync(employees, cancellationToken);
+
+            var fileName = $"Employees_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Imports employees from an Excel file.
+    /// Expected columns: ID (optional), Prénom, Nom, Email, PhoneNumber, Address, Position, Salaire, HireDate, DepartmentId
+    /// If ID is provided and exists, the employee will be updated. Otherwise, a new employee will be created.
+    /// </summary>
+    /// <param name="file">The Excel file to import.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A detailed report of created, updated employees and errors.</returns>
+    [HttpPost("import")]
+    public async Task<IActionResult> ImportFromExcel(IFormFile file, CancellationToken cancellationToken)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { error = "Aucun fichier fourni." });
+
+        if (!file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            return BadRequest(new { error = "Le fichier doit être au format .xlsx" });
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var employeeDtos = await excelService.ImportEmployeesFromExcelAsync(stream, cancellationToken);
+
+            var createdEmployees = new List<EmployeeDto>();
+            var updatedEmployees = new List<EmployeeDto>();
+            var errors = new List<string>();
+
+            foreach (var dto in employeeDtos)
+            {
+                try
+                {
+                    // Vérifier que le département existe
+                    var department = await departmentService.GetByIdAsync(dto.DepartmentId, cancellationToken);
+                    if (department == null)
+                    {
+                        errors.Add($"Erreur pour {dto.FirstName} {dto.LastName}: Le département avec l'ID {dto.DepartmentId} n'existe pas.");
+                        continue;
+                    }
+
+                    // Si l'ID est fourni, vérifier s'il existe pour faire un update
+                    if (dto.Id.HasValue && dto.Id.Value > 0)
+                    {
+                        var existingEmployee = await employeeService.GetByIdAsync(dto.Id.Value, cancellationToken);
+                        
+                        if (existingEmployee != null)
+                        {
+                            // Update: l'employé existe déjà
+                            var updateDto = new EmployeeUpdateDto
+                            {
+                                FirstName = dto.FirstName,
+                                LastName = dto.LastName,
+                                Email = dto.Email,
+                                PhoneNumber = dto.PhoneNumber,
+                                Address = dto.Address,
+                                Position = dto.Position,
+                                Salary = dto.Salary,
+                                DepartmentId = dto.DepartmentId
+                            };
+
+                            var updated = await employeeService.UpdateAsync(dto.Id.Value, updateDto, cancellationToken);
+                            if (updated)
+                            {
+                                var updatedEmployee = await employeeService.GetByIdAsync(dto.Id.Value, cancellationToken);
+                                if (updatedEmployee != null)
+                                    updatedEmployees.Add(updatedEmployee);
+                            }
+                        }
+                        else
+                        {
+                            // L'ID est fourni mais n'existe pas, créer quand même
+                            var createDto = new EmployeeCreateDto
+                            {
+                                FirstName = dto.FirstName,
+                                LastName = dto.LastName,
+                                Email = dto.Email,
+                                PhoneNumber = dto.PhoneNumber,
+                                Address = dto.Address,
+                                Position = dto.Position,
+                                Salary = dto.Salary,
+                                HireDate = dto.HireDate,
+                                DepartmentId = dto.DepartmentId
+                            };
+
+                            var created = await employeeService.CreateAsync(createDto, cancellationToken);
+                            createdEmployees.Add(created);
+                        }
+                    }
+                    else
+                    {
+                        // Pas d'ID: créer un nouvel employé
+                        var createDto = new EmployeeCreateDto
+                        {
+                            FirstName = dto.FirstName,
+                            LastName = dto.LastName,
+                            Email = dto.Email,
+                            PhoneNumber = dto.PhoneNumber,
+                            Address = dto.Address,
+                            Position = dto.Position,
+                            Salary = dto.Salary,
+                            HireDate = dto.HireDate,
+                            DepartmentId = dto.DepartmentId
+                        };
+
+                        var created = await employeeService.CreateAsync(createDto, cancellationToken);
+                        createdEmployees.Add(created);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"Erreur pour {dto.FirstName} {dto.LastName} ({dto.Email}): {ex.Message}");
+                }
+            }
+
+            return Ok(new
+            {
+                success = createdEmployees.Count + updatedEmployees.Count,
+                created = createdEmployees.Count,
+                updated = updatedEmployees.Count,
+                failed = errors.Count,
+                createdEmployees,
+                updatedEmployees,
+                errors
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 }
 

@@ -25,6 +25,7 @@ builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 // Enregistrer les services
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+builder.Services.AddScoped<IExcelService, ExcelService>();
 
 // Add services to the container.
 builder.Services.AddControllers();

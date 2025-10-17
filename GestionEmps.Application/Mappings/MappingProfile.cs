@@ -22,7 +22,15 @@ public class MappingProfile : Profile
         CreateMap<EmployeeCreateDto, Employee>();
         
         CreateMap<EmployeeUpdateDto, Employee>()
-            .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null)); // ignore nulls
+            .ForAllMembers(opts => opts.Condition((src, dest, srcMember, destMember, context) =>
+            {                
+                if (srcMember == null) return false;
+                                
+                if (srcMember is string str)
+                    return !string.IsNullOrEmpty(str);
+                                
+                return true;
+            }));
     }
 }
 

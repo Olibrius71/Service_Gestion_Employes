@@ -69,7 +69,13 @@ public class Repository<T> : IRepository<T> where T : class
     /// <inheritdoc/>
     public async Task<T> UpdateAsync(T entity, CancellationToken cancellationToken = default)
     {
-        _dbSet.Update(entity);
+        var entry = _context.Entry(entity);
+                
+        if (entry.State == Microsoft.EntityFrameworkCore.EntityState.Detached)
+        {
+            _dbSet.Update(entity);
+        }        
+        
         await _context.SaveChangesAsync(cancellationToken);
         return entity;
     }

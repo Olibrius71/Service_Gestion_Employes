@@ -55,5 +55,14 @@ public class EmployeeRepository : Repository<Employee>, IEmployeeRepository
             .Include(e => e.Department)
             .ToListAsync(cancellationToken);
     }
+
+    /// <inheritdoc/>
+    public async Task<IEnumerable<Employee>> GetAllWithDepartmentAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbSet
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .ToListAsync(cancellationToken);
+    }
 }
 

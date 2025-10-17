@@ -1,0 +1,16 @@
+meta {
+  name: Import Employees From Excel
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{base_url}}/api/employees/import
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  file: @file(employees_import.xlsx)
+}
+

@@ -20,7 +20,7 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
     /// <returns>A collection of employee data transfer objects.</returns>
     public async Task<IEnumerable<EmployeeDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var list = await employeeRepository.GetAllAsync(cancellationToken);
+        var list = await employeeRepository.GetAllWithDepartmentAsync(cancellationToken);
         return mapper.Map<IEnumerable<EmployeeDto>>(list);
     }
 
@@ -88,7 +88,7 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
         if (entity == null) return false;
 
         // Si l'email est modifié, vérifier qu'il n'existe pas déjà
-        if (dto.Email != null && dto.Email != entity.Email)
+        if (!string.IsNullOrEmpty(dto.Email) && dto.Email != entity.Email)
         {
             var existingEmail = await employeeRepository.GetByEmailAsync(dto.Email, cancellationToken);
             if (existingEmail != null)
@@ -96,14 +96,38 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
         }
 
         // Si le département est modifié, vérifier qu'il existe
-        if (dto.DepartmentId.HasValue && dto.DepartmentId != entity.DepartmentId)
+        if (dto.DepartmentId.HasValue && dto.DepartmentId.Value != entity.DepartmentId)
         {
             var departmentExists = await departmentRepository.ExistsAsync(dto.DepartmentId.Value, cancellationToken);
             if (!departmentExists)
                 throw new ApplicationException("Department does not exist");
         }
-
-        mapper.Map(dto, entity);
+        
+        if (!string.IsNullOrEmpty(dto.FirstName))
+            entity.FirstName = dto.FirstName;
+        
+        if (!string.IsNullOrEmpty(dto.LastName))
+            entity.LastName = dto.LastName;
+        
+        if (!string.IsNullOrEmpty(dto.Email))
+            entity.Email = dto.Email;
+        
+        if (!string.IsNullOrEmpty(dto.PhoneNumber))
+            entity.PhoneNumber = dto.PhoneNumber;
+        
+        if (!string.IsNullOrEmpty(dto.Address))
+            entity.Address = dto.Address;
+        
+        if (!string.IsNullOrEmpty(dto.Position))
+            entity.Position = dto.Position;
+        
+        if (dto.Salary.HasValue)
+            entity.Salary = dto.Salary.Value;
+        
+        if (dto.DepartmentId.HasValue)
+            entity.DepartmentId = dto.DepartmentId.Value;
+        
+        // Sauvegarder les changements (l'entité est déjà trackée par EF Core)
         await employeeRepository.UpdateAsync(entity, cancellationToken);
 
         return true;

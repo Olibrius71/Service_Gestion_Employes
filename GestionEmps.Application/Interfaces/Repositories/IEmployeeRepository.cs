@@ -43,5 +43,13 @@ public interface IEmployeeRepository : IRepository<Employee>
     /// <returns>A task representing the asynchronous operation.
     /// The task result contains a collection of employees that belong to the specified department.</returns>
     Task<IEnumerable<Employee>> GetByDepartmentAsync(int departmentId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves all employee entities along with their associated departments.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token to notify task cancellation.</param>
+    /// <returns>A task representing the asynchronous operation.
+    /// The task result contains a collection of all employees with their department data loaded.</returns>
+    Task<IEnumerable<Employee>> GetAllWithDepartmentAsync(CancellationToken cancellationToken = default);
 }
 
