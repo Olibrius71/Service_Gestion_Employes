@@ -28,8 +28,7 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
     /// </returns>
     public async Task<EmployeeDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var emp = await employeeRepository.GetByIdAsync(id,
-        cancellationToken);
+        var emp = await employeeRepository.GetByIdAsync(id, cancellationToken);
         return emp == null ? null : mapper.Map<EmployeeDto>(emp);
     }
     /// <summary>

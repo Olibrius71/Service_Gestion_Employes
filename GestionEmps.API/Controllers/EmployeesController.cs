@@ -36,8 +36,7 @@ ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<EmployeeDto>> GetById(int id, CancellationToken cancellationToken)
     {
-        var employee = await employeeService.GetByIdAsync(id,
-        cancellationToken);
+        var employee = await employeeService.GetByIdAsync(id, cancellationToken);
         if (employee == null) return NotFound();
         return Ok(employee);
     }

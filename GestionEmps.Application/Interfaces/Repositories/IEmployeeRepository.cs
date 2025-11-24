@@ -22,8 +22,7 @@ public interface IEmployeeRepository : IRepository<Employee>
     /// <returns>A task representing the asynchronous operation.
     /// The task result contains a collection of employees that belong to the specified department.</returns>
     
-    Task<IEnumerable<Employee>> GetByDepartmentAsync(int departmentId,
-    CancellationToken cancellationToken = default);
+    Task<IEnumerable<Employee>> GetByDepartmentAsync(int departmentId, CancellationToken cancellationToken = default);
     /// <summary>
     /// Retrieves an employee entity along with its associated department based on the provided employee ID.
     /// </summary>
@@ -31,8 +30,7 @@ public interface IEmployeeRepository : IRepository<Employee>
     /// <param name="cancellationToken">A cancellation token to notify task cancellation.</param>
     /// <returns>A task representing the asynchronous operation.
     /// The task result contains the employee entity with its department data, or null if no match is found.</returns>
-    Task<Employee?> GetWithDepartmentAsync(int id, CancellationToken
-    cancellationToken = default);
+    Task<Employee?> GetWithDepartmentAsync(int id, CancellationToken cancellationToken = default);
     /// <summary>
     /// Retrieves a paginated list of employees based on the specified page index and page size.
     /// </summary>
@@ -41,4 +39,12 @@ public interface IEmployeeRepository : IRepository<Employee>
     /// <param name="cancellationToken">A cancellation token to notify task cancellation.</param>
     /// <returns>A task representing the asynchronous operation. The task result contains an enumerable collection of employees for the specified page.</returns>
     Task<IEnumerable<Employee>> GetPagedAsync(int pageIndex, int pageSize,CancellationToken cancellationToken = default);
+    
+    ///// <summary>
+    ///// Retrieves an employee with a unique identifier with department name
+    ///// </summary>
+    ///// <param name="id">The zero-based index of the page to retrieve.</param>
+    ///// <param name="cancellationToken">A cancellation token to notify task cancellation.</param>
+    ///// <returns>A task representing the asynchronous operation. The task result contains an enumerable collection of employees for the specified page.</returns>
+    //Task<Employee?> GetByIdWithDepartmentAsync(int id, CancellationToken cancellationToken = default);
 }

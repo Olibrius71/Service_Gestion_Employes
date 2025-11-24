@@ -22,8 +22,7 @@ public async Task<Employee?> GetByEmailAsync(string email, CancellationToken can
         return await _dbSet
         .AsNoTracking()
         .Include(e => e.Department)
-        .FirstOrDefaultAsync(e => e.Email == email,
-        cancellationToken);
+        .FirstOrDefaultAsync(e => e.Email == email, cancellationToken);
     }
     /// <inheritdoc/>
     public async Task<IEnumerable<Employee>> GetByDepartmentAsync(int departmentId, CancellationToken cancellationToken = default)
@@ -53,4 +52,12 @@ public async Task<Employee?> GetByEmailAsync(string email, CancellationToken can
         .AsNoTracking()
         .ToListAsync(cancellationToken);
     }
+    
+    //public async Task<Employee?> GetByIdWithDepartmentAsync(int id, CancellationToken cancellationToken = default)
+    //{
+    //    return await _dbSet
+    //        .AsNoTracking()
+    //        .Include(e => e.Department)
+    //        .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+    //}
 }

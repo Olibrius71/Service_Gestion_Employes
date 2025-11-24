@@ -74,4 +74,14 @@ public interface IEmployeeService
     /// A task that represents the asynchronous operation. The task result contains a boolean indicating whether the deletion was successful.
     /// </returns>
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Retrieves an employee by their unique identifier asynchronously with department name.
+    /// </summary>
+    /// <param name="id">The unique identifier of the employee to retrieve.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result contains the employee data transfer object (EmployeeDto) if found, otherwise null.
+    /// </returns>
+    //Task<EmployeeDto?> GetByIdWithDepartmentAsync(int id, CancellationToken cancellationToken = default);
 }
