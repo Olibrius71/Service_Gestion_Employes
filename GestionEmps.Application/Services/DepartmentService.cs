@@ -3,6 +3,7 @@ using GestionEmps.Application.DTOs;
 using GestionEmps.Application.Interfaces.Repositories;
 using GestionEmps.Application.Interfaces.Services;
 using GestionEmps.Core.Entities;
+using GestionEmps.Core.Exceptions;
 
 namespace GestionEmps.Application.Services;
 /// <summary>
@@ -19,8 +20,7 @@ public class DepartmentService(IDepartmentRepository departmentRepository, IMapp
     /// <returns>A collection of department data transfer objects.</returns>
     public async Task<IEnumerable<DepartmentDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var list = await
-        departmentRepository.GetAllAsync(cancellationToken);
+        var list = await departmentRepository.GetAllAsync(cancellationToken);
         return mapper.Map<IEnumerable<DepartmentDto>>(list);
     }
     
@@ -32,9 +32,14 @@ public class DepartmentService(IDepartmentRepository departmentRepository, IMapp
     /// <returns>A department data transfer object if found; otherwise, null.</returns>
     public async Task<DepartmentDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var dept = await departmentRepository.GetByIdAsync(id,
-        cancellationToken);
-        return dept == null ? null : mapper.Map<DepartmentDto>(dept);
+        var department = await departmentRepository.GetByIdAsync(id, cancellationToken);
+        
+        if (department == null)
+        {
+            throw new DepartmentNotFoundException(id);
+        }
+        
+        return mapper.Map<DepartmentDto>(department);
     }
     
     /// <summary>
@@ -46,16 +51,19 @@ public class DepartmentService(IDepartmentRepository departmentRepository, IMapp
     /// <exception cref="ApplicationException">Thrown if the department name or code already exists.</exception>
     public async Task<DepartmentDto> CreateAsync(DepartmentCreateDto dto, CancellationToken cancellationToken = default)
     {
-        var existingName = await
-        departmentRepository.GetByNameAsync(dto.Name, cancellationToken);
+        var existingName = await departmentRepository.GetByNameAsync(dto.Name, cancellationToken);
+        
         if (existingName != null)
-        throw new ApplicationException("Department name already exists");
-        var existingCode = await
-        departmentRepository.GetByCodeAsync(dto.Code, cancellationToken);
+            throw new DuplicateDepartmentNameException(dto.Name);
+        
+        var existingCode = await departmentRepository.GetByCodeAsync(dto.Code, cancellationToken);
+        
         if (existingCode != null)
-        throw new ApplicationException("Department code already exists");
+            throw new DuplicateDepartmentCodeException(dto.Code);
+        
         var entity = mapper.Map<Department>(dto);
         await departmentRepository.AddAsync(entity, cancellationToken);
+        
         return mapper.Map<DepartmentDto>(entity);
     }
     
@@ -69,9 +77,16 @@ public class DepartmentService(IDepartmentRepository departmentRepository, IMapp
     public async Task<bool> UpdateAsync(int id, DepartmentUpdateDto dto, CancellationToken cancellationToken = default)
     {
         var entity = await departmentRepository.GetByIdAsync(id, cancellationToken);
-        if (entity == null) return false;
+        
+        if (entity == null)
+        {
+            throw new DepartmentNotFoundException(id);
+        }
+        
         mapper.Map(dto, entity);
+        
         await departmentRepository.UpdateAsync(entity, cancellationToken);
+
         return true;
     }
     
@@ -83,11 +98,15 @@ public class DepartmentService(IDepartmentRepository departmentRepository, IMapp
     /// <returns>A boolean indicating whether the deletion was successful.</returns>
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        var entity = await departmentRepository.GetByIdAsync(id,
-        cancellationToken);
-        if (entity == null) return false;
-        await departmentRepository.DeleteAsync(entity.Id,
-        cancellationToken);
+        var entity = await departmentRepository.GetByIdAsync(id, cancellationToken);
+        
+        if (entity == null)
+        {
+            throw new DepartmentNotFoundException(id);
+        }
+        
+        await departmentRepository.DeleteAsync(entity.Id, cancellationToken);
+
         return true;
     }
 }

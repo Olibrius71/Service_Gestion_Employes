@@ -1,3 +1,4 @@
+using GestionEmps.API.Middleware;
 using GestionEmps.Application.Interfaces.Repositories;
 using GestionEmps.Application.Interfaces.Services;
 using Microsoft.EntityFrameworkCore;
@@ -45,5 +46,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 app.MapControllers();
 app.Run();

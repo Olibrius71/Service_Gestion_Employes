@@ -24,24 +24,8 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     [ProducesResponseType(400)]
     public async Task<ActionResult<AttendanceDto>> ClockIn([FromBody] ClockInOutDto clockInDto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var attendance = await
-            attendanceService.ClockInAsync(clockInDto, cancellationToken);
-            return Ok(attendance);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
+        var attendance = await attendanceService.ClockInAsync(clockInDto, cancellationToken);
+        return Ok(attendance);
     }
     
     /// <summary>
@@ -55,24 +39,8 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     [ProducesResponseType(400)]
     public async Task<ActionResult<AttendanceDto>> ClockOut([FromBody] ClockInOutDto clockOutDto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var attendance = await
-            attendanceService.ClockOutAsync(clockOutDto, cancellationToken);
-            return Ok(attendance);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
+        var attendance = await attendanceService.ClockOutAsync(clockOutDto, cancellationToken);
+        return Ok(attendance);
     }
     
     /// <summary>
@@ -87,25 +55,8 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     public async Task<ActionResult<AttendanceDto>>
     CreateAttendance([FromBody] AttendanceCreateDto createAttendanceDto, CancellationToken cancellationToken)
     {
-        try
-        {
-            var attendance = await
-            attendanceService.CreateAttendanceAsync(createAttendanceDto,
-            cancellationToken);
-            return CreatedAtAction(nameof(GetAttendance), new { id = attendance.Id }, attendance);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
+        var attendance = await attendanceService.CreateAttendanceAsync(createAttendanceDto, cancellationToken);
+        return CreatedAtAction(nameof(GetAttendance), new { id = attendance.Id }, attendance);
     }
     
     /// <summary>
@@ -119,19 +70,12 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     [ProducesResponseType(404)]
     public async Task<ActionResult<AttendanceDto>> GetAttendance(int id, CancellationToken cancellationToken)
     {
-        try
-        {
-            var attendance = await
-            attendanceService.GetAttendanceByIdAsync(id, cancellationToken);
-            if (attendance == null)
-                return NotFound($"Attendance record with ID {id} not found");
-            return Ok(attendance);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
+        var attendance = await attendanceService.GetAttendanceByIdAsync(id, cancellationToken);
+        if (attendance == null)
+            return NotFound($"Attendance record with ID {id} not found");
+        return Ok(attendance);
     }
+    
     /// <summary>
     /// Retrieves the attendance records of a specific employee within an optional date range.
     /// </summary>
@@ -144,23 +88,10 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     [ProducesResponseType(200, Type =
     typeof(IEnumerable<AttendanceDto>))]
     public async Task<ActionResult<IEnumerable<AttendanceDto>>>
-    GetEmployeeAttendances(
-    int employeeId,
-    [FromQuery] DateTime? startDate = null,
-    [FromQuery] DateTime? endDate = null, CancellationToken
-    cancellationToken = default)
+    GetEmployeeAttendances(int employeeId, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var attendances = await
-            attendanceService.GetAttendancesByEmployeeAsync(employeeId, startDate,
-            endDate, cancellationToken);
-            return Ok(attendances);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
+        var attendances = await attendanceService.GetAttendancesByEmployeeAsync(employeeId, startDate, endDate, cancellationToken);
+        return Ok(attendances);
     }
     
     /// <summary>
@@ -175,16 +106,8 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     public async Task<ActionResult<IEnumerable<AttendanceDto>>>
     GetAttendancesByDate(DateTime date, CancellationToken cancellationToken)
     {
-        try
-        {
-            var attendances = await
-            attendanceService.GetAttendancesByDateAsync(date, cancellationToken);
-            return Ok(attendances);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
+        var attendances = await attendanceService.GetAttendancesByDateAsync(date, cancellationToken);
+        return Ok(attendances);
     }
     
     /// <summary>
@@ -199,19 +122,10 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     public async Task<ActionResult<AttendanceDto>>
     GetTodayAttendance(int employeeId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var attendance = await
-            attendanceService.GetTodayAttendanceAsync(employeeId,
-            cancellationToken);
-            if (attendance == null)
-                return NotFound("No attendance record found for today");
-            return Ok(attendance);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
+        var attendance = await attendanceService.GetTodayAttendanceAsync(employeeId, cancellationToken);
+        if (attendance == null)
+            return NotFound("No attendance record found for today");
+        return Ok(attendance);
     }
     
     /// <summary>
@@ -224,19 +138,9 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     /// <returns>Returns the total hours worked by the employee as a decimal value.</returns>
     [HttpGet("employee/{employeeId:int}/hours/{year:int}/{month:int}")]
     [ProducesResponseType(200, Type = typeof(decimal))]
-    public async Task<ActionResult<decimal>> GetMonthlyHours(int
-    employeeId, int year, int month, CancellationToken cancellationToken)
+    public async Task<ActionResult<decimal>> GetMonthlyHours(int employeeId, int year, int month, CancellationToken cancellationToken)
     {
-        try
-        {
-            var totalHours = await
-            attendanceService.GetMonthlyWorkedHoursAsync(employeeId, year, month,
-            cancellationToken);
-            return Ok(totalHours);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
+        var totalHours = await attendanceService.GetMonthlyWorkedHoursAsync(employeeId, year, month, cancellationToken);
+        return Ok(totalHours);
     }
 }

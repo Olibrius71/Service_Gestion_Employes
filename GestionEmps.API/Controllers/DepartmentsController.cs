@@ -19,8 +19,7 @@ public class DepartmentsController(IDepartmentService departmentService) : Contr
     [HttpGet]
     public async Task<ActionResult<IEnumerable<DepartmentDto>>> GetAll(CancellationToken cancellationToken)
     {
-        var depts = await
-        departmentService.GetAllAsync(cancellationToken);
+        var depts = await departmentService.GetAllAsync(cancellationToken);
         return Ok(depts);
     }
     
@@ -35,7 +34,8 @@ public class DepartmentsController(IDepartmentService departmentService) : Contr
     {
         var dept = await departmentService.GetByIdAsync(id,
         cancellationToken);
-        if (dept == null) return NotFound();
+        if (dept == null) 
+            return NotFound();
         return Ok(dept);
     }
     
@@ -48,8 +48,7 @@ public class DepartmentsController(IDepartmentService departmentService) : Contr
     [HttpPost]
     public async Task<ActionResult<DepartmentDto>> Create(DepartmentCreateDto dto, CancellationToken cancellationToken)
     {
-        var created = await departmentService.CreateAsync(dto,
-        cancellationToken);
+        var created = await departmentService.CreateAsync(dto, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
     
@@ -64,7 +63,8 @@ public class DepartmentsController(IDepartmentService departmentService) : Contr
     public async Task<IActionResult> Update(int id, DepartmentUpdateDto dto, CancellationToken cancellationToken)
     {
         var ok = await departmentService.UpdateAsync(id, dto, cancellationToken);
-        if (!ok) return NotFound();
+        if (!ok) 
+            return NotFound();
         return NoContent();
     }
     /// <summary>
@@ -76,9 +76,9 @@ public class DepartmentsController(IDepartmentService departmentService) : Contr
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        var ok = await departmentService.DeleteAsync(id,
-        cancellationToken);
-        if (!ok) return NotFound();
+        var ok = await departmentService.DeleteAsync(id, cancellationToken);
+        if (!ok) 
+            return NotFound();
         return NoContent();
     }
 }

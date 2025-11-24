@@ -20,8 +20,7 @@ ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<EmployeeDto>>>GetAll(CancellationToken cancellationToken)
     {
-        var employees = await
-        employeeService.GetAllAsync(cancellationToken);
+        var employees = await employeeService.GetAllAsync(cancellationToken);
         return Ok(employees);
     }
     
@@ -37,7 +36,8 @@ ControllerBase
     public async Task<ActionResult<EmployeeDto>> GetById(int id, CancellationToken cancellationToken)
     {
         var employee = await employeeService.GetByIdAsync(id, cancellationToken);
-        if (employee == null) return NotFound();
+        if (employee == null) 
+            return NotFound();
         return Ok(employee);
     }
     
@@ -52,9 +52,9 @@ ControllerBase
     [HttpGet("by-email/{email}")]
     public async Task<ActionResult<EmployeeDto>> GetByEmail(string email, CancellationToken cancellationToken)
     {
-        var employee = await employeeService.GetByEmailAsync(email,
-        cancellationToken);
-        if (employee == null) return NotFound();
+        var employee = await employeeService.GetByEmailAsync(email, cancellationToken);
+        if (employee == null) 
+            return NotFound();
         return Ok(employee);
     }
     
@@ -69,8 +69,7 @@ ControllerBase
     [HttpGet("by-department/{departmentId:int}")]
     public async Task<ActionResult<IEnumerable<EmployeeDto>>>GetByDepartment(int departmentId, CancellationToken cancellationToken)
     {
-        var employees = await
-        employeeService.GetByDepartmentAsync(departmentId, cancellationToken);
+        var employees = await employeeService.GetByDepartmentAsync(departmentId, cancellationToken);
         return Ok(employees);
     }
     
@@ -85,8 +84,7 @@ ControllerBase
     [HttpPost]
     public async Task<ActionResult<EmployeeDto>>Create(EmployeeCreateDto dto, CancellationToken cancellationToken)
     {
-        var created = await employeeService.CreateAsync(dto,
-        cancellationToken);
+        var created = await employeeService.CreateAsync(dto, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
     
@@ -103,7 +101,8 @@ ControllerBase
     public async Task<IActionResult> Update(int id, EmployeeUpdateDto dto, CancellationToken cancellationToken)
     {
         var ok = await employeeService.UpdateAsync(id, dto, cancellationToken);
-        if (!ok) return NotFound();
+        if (!ok) 
+            return NotFound();
         return NoContent();
     }
     
@@ -119,7 +118,8 @@ ControllerBase
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var ok = await employeeService.DeleteAsync(id, cancellationToken);
-        if (!ok) return NotFound();
+        if (!ok) 
+            return NotFound();
         return NoContent();
     }
 }

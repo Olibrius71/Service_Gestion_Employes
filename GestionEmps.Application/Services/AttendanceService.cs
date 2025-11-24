@@ -3,6 +3,7 @@ using GestionEmps.Application.DTOs;
 using GestionEmps.Application.Interfaces.Repositories;
 using GestionEmps.Application.Interfaces.Services;
 using GestionEmps.Core.Entities;
+using GestionEmps.Core.Exceptions;
 
 namespace GestionEmps.Application.Services;
 /// <summary>
@@ -26,7 +27,7 @@ public class AttendanceService( IAttendanceRepository attendanceRepository, IEmp
     public async Task<AttendanceDto> ClockInAsync(ClockInOutDto clockInDto, CancellationToken cancellationToken = default)
     {
         if (!await employeeRepository.ExistsAsync(clockInDto.EmployeeId, cancellationToken))
-            throw new KeyNotFoundException($"Employee with ID {clockInDto.EmployeeId} not found");
+            throw new EmployeeNotFoundException(clockInDto.EmployeeId);
     
         var date = clockInDto.DateTime.Date;
         var time = clockInDto.DateTime.TimeOfDay;
@@ -39,7 +40,7 @@ public class AttendanceService( IAttendanceRepository attendanceRepository, IEmp
         if (attendance != null)
         {
             if (attendance.ClockIn.HasValue)
-                throw new InvalidOperationException("Employee has already clocked in today");
+                throw new AlreadyClockedInException(clockInDto.EmployeeId);
             
             attendance.ClockIn = time;
             attendance.Notes = clockInDto.Notes;
@@ -81,7 +82,7 @@ public class AttendanceService( IAttendanceRepository attendanceRepository, IEmp
     {
         // Vérifier que l'employé existe
         if (!await employeeRepository.ExistsAsync(clockOutDto.EmployeeId, cancellationToken))
-            throw new KeyNotFoundException($"Employee with ID {clockOutDto.EmployeeId} not found");
+            throw new EmployeeNotFoundException(clockOutDto.EmployeeId);
         
         var date = clockOutDto.DateTime.Date;
         var time = clockOutDto.DateTime.TimeOfDay;
@@ -90,14 +91,11 @@ public class AttendanceService( IAttendanceRepository attendanceRepository, IEmp
         var attendances = await attendanceRepository.GetByEmployeeAsync(clockOutDto.EmployeeId, cancellationToken);
         var attendance = attendances.FirstOrDefault(a => a.Date.Date == date);
         
-        if (attendance == null)
-            throw new InvalidOperationException("No clock-in record found for today");
-        
-        if (!attendance.ClockIn.HasValue)
-            throw new InvalidOperationException("Employee must clock in before clocking out");
+        if (attendance == null || !attendance.ClockIn.HasValue)
+            throw new NotClockedInException(clockOutDto.EmployeeId);
         
         if (attendance.ClockOut.HasValue)
-            throw new InvalidOperationException("Employee has already clocked out today");
+            throw new NotClockedInException(clockOutDto.EmployeeId);
         
         attendance.ClockOut = time;
         attendance.Notes += (string.IsNullOrEmpty(attendance.Notes) ? "" : "; ") + clockOutDto.Notes;
@@ -125,29 +123,27 @@ public class AttendanceService( IAttendanceRepository attendanceRepository, IEmp
     {
         if (createAttendanceDto == null)
             throw new ArgumentNullException(nameof(createAttendanceDto));
-        
+
         // Vérifier que l'employé existe
         if (!await employeeRepository.ExistsAsync(createAttendanceDto.EmployeeId, cancellationToken))
-            throw new KeyNotFoundException($"Employee with ID {createAttendanceDto.EmployeeId} not found");
-        
-        // Vérifier s'il existe déjà une entrée pour cette date 
+            throw new EmployeeNotFoundException(createAttendanceDto.EmployeeId);
+
+        // Vérifier s'il existe déjà une entrée pour cette date
         var attendances = await attendanceRepository.GetByEmployeeAsync(createAttendanceDto.EmployeeId, cancellationToken);
-        
-        // SI existe : throw new InvalidOperationException($"Attendance record already exists for {createAttendanceDto.Date:yyyy-MM-dd}");
         if (attendances.Any(a => a.Date.Date == createAttendanceDto.Date.Date))
-            throw new InvalidOperationException($"Attendance record already exists for {createAttendanceDto.Date:yyyy-MM-dd}");
+            throw new AttendanceException($"Une entrée de présence existe déjà pour le {createAttendanceDto.Date:yyyy-MM-dd}");
         
         var entity = mapper.Map<Attendance>(createAttendanceDto);
         entity.CreatedAt = DateTime.UtcNow;
-            
-        // Calculer les heures travaillées si les deux heures sont fournies
+        
         CalculateWorkedHours(entity);
         
         await attendanceRepository.AddAsync(entity, cancellationToken);
-        
+
         return mapper.Map<AttendanceDto>(entity);
         
     }
+    
     /// <summary>
     /// Retrieves an attendance record by its unique identifier.
     /// </summary>
@@ -156,9 +152,12 @@ public class AttendanceService( IAttendanceRepository attendanceRepository, IEmp
     /// <returns>An object containing the attendance details, or null if no record is found with the specified ID.</returns>
     public async Task<AttendanceDto?> GetAttendanceByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var att = await attendanceRepository.GetByIdAsync(id,
-        cancellationToken);
-        return att == null ? null : mapper.Map<AttendanceDto>(att);
+        var att = await attendanceRepository.GetByIdAsync(id, cancellationToken);
+        
+        if (att == null)
+            throw new AttendanceException($"Aucune entrée de présence trouvée pour l'ID {id}");
+        
+        return mapper.Map<AttendanceDto>(att);
     }
     
     /// <summary>
@@ -172,15 +171,21 @@ public class AttendanceService( IAttendanceRepository attendanceRepository, IEmp
     /// <returns>A collection of attendance records for the specified employee within the date range, if provided.</returns>
     public async Task<IEnumerable<AttendanceDto>> GetAttendancesByEmployeeAsync(int employeeId, DateTime? startDate = null, DateTime? endDate = null, CancellationToken cancellationToken = default)
     {
+        if (!await employeeRepository.ExistsAsync(employeeId, cancellationToken))
+            throw new EmployeeNotFoundException(employeeId);
+
         var attendances = await attendanceRepository.GetByEmployeeAsync(employeeId, cancellationToken);
-        
+
         if (startDate.HasValue)
             attendances = attendances.Where(a => a.Date.Date >= startDate.Value.Date);
-        
+
         if (endDate.HasValue)
             attendances = attendances.Where(a => a.Date.Date <= endDate.Value.Date);
-        
-        return attendances.OrderBy(a => a.Date).Select(a => mapper.Map<AttendanceDto>(a)).ToList();
+
+        return attendances
+            .OrderBy(a => a.Date)
+            .Select(a => mapper.Map<AttendanceDto>(a))
+            .ToList();
     }
     
     /// <summary>
@@ -214,18 +219,18 @@ public class AttendanceService( IAttendanceRepository attendanceRepository, IEmp
     public async Task<AttendanceDto?> GetTodayAttendanceAsync(int employeeId, CancellationToken cancellationToken = default)
     {
         if (!await employeeRepository.ExistsAsync(employeeId, cancellationToken))
-            throw new KeyNotFoundException($"Employee with ID {employeeId} not found");
-        
+            throw new EmployeeNotFoundException(employeeId);
+
         var today = DateTime.Today;
         var attendances = await attendanceRepository.GetByEmployeeAsync(employeeId, cancellationToken);
         var todaysRecords = attendances.Where(a => a.Date.Date == today).ToList();
-        
+
         if (todaysRecords.Count > 1)
-            throw new InvalidOperationException($"Multiple attendance records found for employee {employeeId} on {today:yyyy-MM-dd}");
-        
+            throw new AttendanceException($"Plusieurs entrées de présence trouvées pour l'employé {employeeId} le {today:yyyy-MM-dd}");
+
         if (todaysRecords.Count == 0)
             return null;
-        
+
         return mapper.Map<AttendanceDto>(todaysRecords.First());
     }
     
@@ -244,24 +249,23 @@ public class AttendanceService( IAttendanceRepository attendanceRepository, IEmp
     public async Task<decimal> GetMonthlyWorkedHoursAsync(int employeeId, int year, int month, CancellationToken cancellationToken = default)
     {
         if (!await employeeRepository.ExistsAsync(employeeId, cancellationToken))
-            throw new KeyNotFoundException($"Employee with ID {employeeId} not found");
-        
+            throw new EmployeeNotFoundException(employeeId);
+    
         var startDate = new DateTime(year, month, 1);
         var endDate = startDate.AddMonths(1).AddDays(-1);
-        
+    
         var attendances = await attendanceRepository.GetByEmployeeAsync(employeeId, cancellationToken);
-
         var monthlyAttendances = attendances.Where(a => a.Date.Date >= startDate && a.Date.Date <= endDate).ToList();
-        
+    
         if (!monthlyAttendances.Any())
-            throw new KeyNotFoundException($"No attendance records found for employee {employeeId} in {month}/{year}");
-        
+            throw new AttendanceException($"Aucune entrée de présence trouvée pour l'employé {employeeId} en {month}/{year}");
+    
         decimal totalHours = 0;
-        
+    
         foreach (var attendance in monthlyAttendances)
         {
             if (!attendance.ClockIn.HasValue || !attendance.ClockOut.HasValue)
-                throw new InvalidOperationException($"Incomplete attendance data for date {attendance.Date:yyyy-MM-dd}");
+                throw new AttendanceException($"Données de présence incomplètes pour le {attendance.Date:yyyy-MM-dd}");
 
             // Calcul des heures de travail
             var workedTime = attendance.ClockOut.Value - attendance.ClockIn.Value;
@@ -270,7 +274,7 @@ public class AttendanceService( IAttendanceRepository attendanceRepository, IEmp
                 workedTime -= attendance.BreakDuration.Value;
 
             if (workedTime.TotalHours < 0)
-                throw new InvalidOperationException($"Invalid time data for date {attendance.Date:yyyy-MM-dd}");
+                throw new AttendanceException($"Données horaires invalides pour le {attendance.Date:yyyy-MM-dd}");
 
             totalHours += (decimal)workedTime.TotalHours;
         }
@@ -288,18 +292,19 @@ public class AttendanceService( IAttendanceRepository attendanceRepository, IEmp
     {
         if (!attendance.ClockIn.HasValue || !attendance.ClockOut.HasValue)
             return;
-        
+    
         var totalWorked = attendance.ClockOut.Value - attendance.ClockIn.Value;
-        // Soustraire la pause
-        if (attendance.BreakDuration.HasValue) 
+
+        if (attendance.BreakDuration.HasValue)
             totalWorked -= attendance.BreakDuration.Value;
-        
-        var workedHours = (decimal)totalWorked.TotalHours;
-        // Calculer les heures normales (8 heures par jour)
+
+        var workedHours = Math.Max(0, (decimal)totalWorked.TotalHours);
+
         const decimal normalWorkingHours = 8m;
+
         if (workedHours <= normalWorkingHours)
         {
-            attendance.WorkedHours = Math.Max(0, workedHours);
+            attendance.WorkedHours = workedHours;
             attendance.OvertimeHours = 0;
         }
         else

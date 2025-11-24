@@ -3,6 +3,8 @@ using GestionEmps.Application.DTOs.Employees;
 using GestionEmps.Application.Interfaces.Repositories;
 using GestionEmps.Application.Interfaces.Services;
 using GestionEmps.Core.Entities;
+using GestionEmps.Core.Exceptions;
+
 namespace GestionEmps.Application.Services;
 
 public class EmployeeService(IEmployeeRepository employeeRepository, IDepartmentRepository departmentRepository, IMapper mapper) : IEmployeeService
@@ -18,6 +20,7 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
         employeeRepository.GetAllAsync(cancellationToken);
         return mapper.Map<IEnumerable<EmployeeDto>>(list);
     }
+    
     /// <summary>
     /// Asynchronously retrieves an employee by their unique identifier and maps it to an EmployeeDto.
     /// </summary>
@@ -28,9 +31,16 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
     /// </returns>
     public async Task<EmployeeDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var emp = await employeeRepository.GetByIdAsync(id, cancellationToken);
-        return emp == null ? null : mapper.Map<EmployeeDto>(emp);
+        var employee = await employeeRepository.GetByIdAsync(id, cancellationToken);
+        
+        if (employee == null)
+        {
+            throw new EmployeeNotFoundException(id);
+        }
+        
+        return mapper.Map<EmployeeDto>(employee);
     }
+    
     /// <summary>
     /// Asynchronously retrieves an employee by their email address and maps it to an EmployeeDto.
     /// </summary>
@@ -39,10 +49,16 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
     /// <returns>A task that represents the asynchronous operation. The task result contains the EmployeeDto if found; otherwise, null.</returns>
     public async Task<EmployeeDto?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        var emp = await employeeRepository.GetByEmailAsync(email,
-        cancellationToken);
-        return emp == null ? null : mapper.Map<EmployeeDto>(emp);
+        var employee = await employeeRepository.GetByEmailAsync(email, cancellationToken);
+        
+        if (employee == null)
+        {
+            throw new EmployeeNotFoundException(email);
+        }
+        
+        return mapper.Map<EmployeeDto>(employee);
     }
+    
     /// <summary>
     /// Asynchronously retrieves employees belonging to a specific department and maps them to a collection of EmployeeDto.
     /// </summary>
@@ -51,11 +67,16 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
     /// <returns>A task that represents the asynchronous operation. The task result contains a collection of EmployeeDto objects associated with the specified department.</returns>
     public async Task<IEnumerable<EmployeeDto>> GetByDepartmentAsync(int departmentId, CancellationToken cancellationToken = default)
     {
-        var list = await
-        employeeRepository.GetByDepartmentAsync(departmentId,
-        cancellationToken);
-        return mapper.Map<IEnumerable<EmployeeDto>>(list);
+        if (!await departmentRepository.ExistsAsync(departmentId, cancellationToken))
+        {
+            throw new DepartmentNotFoundException(departmentId);
+        }
+        
+        var employees = await employeeRepository.GetByDepartmentAsync(departmentId, cancellationToken);
+        
+        return mapper.Map<IEnumerable<EmployeeDto>>(employees);
     }
+    
     /// <summary>
     /// Asynchronously creates a new employee in the repository based on the provided data transfer object.
     /// </summary>
@@ -65,16 +86,23 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
     /// <exception cref="ApplicationException">Thrown if the specified department does not exist or if the email is already associated with another employee.</exception>
     public async Task<EmployeeDto> CreateAsync(EmployeeCreateDto dto, CancellationToken cancellationToken = default)
     {
-        var department = await
-        departmentRepository.GetByIdAsync(dto.DepartmentId, cancellationToken);
+        var department = await departmentRepository.GetByIdAsync(dto.DepartmentId, cancellationToken);
+        
         if (department == null)
-        throw new ApplicationException("Il n'existe aucun departement avec cet identifiant");
-        var existingEmployee = await
-        employeeRepository.GetByEmailAsync(dto.Email, cancellationToken);
+        {
+            throw new DepartmentNotFoundException(dto.DepartmentId);
+        }
+        
+        var existingEmployee = await employeeRepository.GetByEmailAsync(dto.Email, cancellationToken);
+        
         if (existingEmployee != null)
-        throw new ApplicationException("Cet email existe déjà pour un autre employée");
+        {
+            throw new DuplicateEmployeeEmailException(dto.Email);
+        }
+        
         var entity = mapper.Map<Employee>(dto);
         await employeeRepository.AddAsync(entity, cancellationToken);
+        
         return mapper.Map<EmployeeDto>(entity);
     }
     
@@ -88,11 +116,19 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
     public async Task<bool> UpdateAsync(int id, EmployeeUpdateDto dto, CancellationToken cancellationToken = default)
     {
         var entity = await employeeRepository.GetByIdAsync(id, cancellationToken);
-        if (entity == null) return false;
+        
+        if (entity == null)
+        {
+            throw new EmployeeNotFoundException(id);
+        }
+        
         mapper.Map(dto, entity);
+
         await employeeRepository.UpdateAsync(entity, cancellationToken);
+
         return true;
     }
+    
     /// <summary>
     /// Asynchronously deletes an employee by their unique identifier.
     /// </summary>
@@ -102,8 +138,14 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
         var entity = await employeeRepository.GetByIdAsync(id, cancellationToken);
-        if (entity == null) return false;
+        
+        if (entity == null)
+        {
+            throw new EmployeeNotFoundException(id);
+        }
+        
         await employeeRepository.DeleteAsync(entity.Id, cancellationToken);
+
         return true;
     }
 }

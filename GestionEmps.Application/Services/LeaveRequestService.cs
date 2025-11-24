@@ -4,47 +4,54 @@ using GestionEmps.Application.Interfaces.Repositories;
 using GestionEmps.Application.Interfaces.Services;
 using GestionEmps.Core.Entities;
 using GestionEmps.Core.Enums;
+using GestionEmps.Core.Exceptions;
 
 namespace GestionEmps.Application.Services;
 
 public class LeaveRequestService(IEmployeeRepository employeeRepository, ILeaveRequestRepository leaveRequestRepository, IMapper mapper) : ILeaveRequestService
 {    
      /// <summary>
-     /// Creates a new leave request in the system asynchronously.
+     /// Creates a new leave request asynchronously.
      /// </summary>
      /// <param name="dto">
-     /// The data required to create a new leave request, including employee ID, leave type, start date, end date, and reason.
+     /// The data transfer object containing the details of the leave request to be created.
      /// </param>
      /// <param name="cancellationToken">
      /// A token to monitor for cancellation requests.
      /// </param>
      /// <returns>
-     /// The details of the created leave request wrapped in a LeaveRequestDto.
+     /// The details of the newly created leave request, wrapped in a LeaveRequestDto.
      /// </returns>
-     /// <exception cref="NotImplementedException">
-     /// Thrown if the method is not implemented.
+     /// <exception cref="KeyNotFoundException">
+     /// Thrown if the referenced employee does not exist.
+     /// </exception>
+     /// <exception cref="InvalidOperationException">
+     /// Thrown if the leave request has invalid dates, such as an end date earlier than the start date,
+     /// a start date in the past, or conflicting with an existing approved leave request.
      /// </exception>
      public async Task<LeaveRequestDto> CreateAsync(LeaveRequestCreateDto dto, CancellationToken cancellationToken = default)
      {
-          // Vérifier que l'employé existe
-          if (!await employeeRepository.ExistsAsync(dto.EmployeeId, cancellationToken))
-               throw new KeyNotFoundException($"Employee with ID {dto.EmployeeId} not found");
-
-          // Vérifier si une requête existe déjà sur les mêmes dates
-          if (await HasConflictingLeaveAsync(dto.EmployeeId, dto.StartDate, dto.EndDate, null, cancellationToken))
-               throw new InvalidOperationException("A leave request already exists for the specified period.");
-
-          // Mapper la DTO en entité
+          var employee = await employeeRepository.GetByIdAsync(dto.EmployeeId, cancellationToken);
+          if (employee is null)
+               throw new EmployeeNotFoundException(dto.EmployeeId);
+          
+          if (dto.EndDate < dto.StartDate)
+               throw new ValidationException("EndDate", "La date de fin doit être supérieure à la date de début.");
+          
+          if (dto.StartDate < DateTime.Today)
+               throw new ValidationException("StartDate", "La date de début doit être supérieure ou égale à la date de jour.");
+          
+          var daysRequested = CalculateBusinessDays(dto.StartDate, dto.EndDate);
+          var hasConflict = await HasConflictingLeaveAsync(dto.EmployeeId, dto.StartDate, dto.EndDate, cancellationToken: cancellationToken);
+          
+          if (hasConflict)
+               throw new ConflictingLeaveRequestException(dto.StartDate, dto.EndDate);
+          
           var entity = mapper.Map<LeaveRequest>(dto);
-
-          // Initialiser les propriétés calculées
-          entity.Status = LeaveStatus.Pending;
-          entity.DaysRequested = CalculateBusinessDays(dto.StartDate, dto.EndDate);
-
-          // Sauvegarder
+          entity.DaysRequested = daysRequested;
+          
           await leaveRequestRepository.AddAsync(entity, cancellationToken);
-
-          // Retourner le résultat mappé
+          
           return mapper.Map<LeaveRequestDto>(entity);
      }
      
@@ -66,7 +73,12 @@ public class LeaveRequestService(IEmployeeRepository employeeRepository, ILeaveR
      public async Task<LeaveRequestDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
      {
           var entity = await leaveRequestRepository.GetByIdAsync(id, cancellationToken);
-          return entity == null ? null : mapper.Map<LeaveRequestDto>(entity);
+          if (entity == null)
+          {
+               throw new LeaveRequestNotFoundException(id);
+          }
+          
+          return mapper.Map<LeaveRequestDto>(entity);
      }
      
      /// <summary>
@@ -88,7 +100,9 @@ public class LeaveRequestService(IEmployeeRepository employeeRepository, ILeaveR
      {
           // Vérifier que l'employé existe
           if (!await employeeRepository.ExistsAsync(employeeId, cancellationToken))
-               throw new KeyNotFoundException($"Employee with ID {employeeId} not found");
+          {
+               throw new EmployeeNotFoundException(employeeId);
+          }
 
           var requests = await leaveRequestRepository.GetByEmployeeAsync(employeeId, cancellationToken);
           return requests.Select(r => mapper.Map<LeaveRequestDto>(r));
@@ -159,18 +173,19 @@ public class LeaveRequestService(IEmployeeRepository employeeRepository, ILeaveR
 
           var request = await leaveRequestRepository.GetByIdAsync(id, cancellationToken);
           if (request == null)
-               throw new KeyNotFoundException($"Leave request with ID {id} not found");
+               throw new LeaveRequestNotFoundException(id);
           
           if (request.Status == LeaveStatus.Approved ||
               request.Status == LeaveStatus.Rejected ||
-              request.Status == LeaveStatus.Cancelled)
-               throw new InvalidOperationException($"Leave request with ID {id} cannot be modified because it is already {request.Status}");
+              request.Status == LeaveStatus.Cancelled) 
+               throw new InvalidLeaveStatusTransitionException(request.Status.ToString(), dto.Status.ToString());
           
           request.Status = dto.Status;
           request.ManagerComments = dto.ManagerComments;
           request.UpdatedAt = DateTime.UtcNow;
 
           await leaveRequestRepository.UpdateAsync(request, cancellationToken);
+          
           return true;
      }
      
@@ -195,7 +210,9 @@ public class LeaveRequestService(IEmployeeRepository employeeRepository, ILeaveR
      public async Task<int> GetRemainingLeaveDaysAsync(int employeeId, int year, CancellationToken cancellationToken = default)
      {
           if (!await employeeRepository.ExistsAsync(employeeId, cancellationToken))
-               throw new KeyNotFoundException($"Employee with ID {employeeId} not found");
+          {
+               throw new EmployeeNotFoundException(employeeId);
+          }
           
           const int AnnualLeaveAllowance = 22;
           
@@ -234,6 +251,11 @@ public class LeaveRequestService(IEmployeeRepository employeeRepository, ILeaveR
      
      public async Task<bool> HasConflictingLeaveAsync(int employeeId, DateTime startDate, DateTime endDate, int? excludeRequestId = null, CancellationToken cancellationToken = default)
      {
+          if (!await employeeRepository.ExistsAsync(employeeId, cancellationToken))
+          {
+               throw new EmployeeNotFoundException(employeeId);
+          }
+          
           var requests = await leaveRequestRepository.GetByEmployeeAsync(employeeId, cancellationToken);
 
           return requests.Any(r =>
@@ -247,6 +269,10 @@ public class LeaveRequestService(IEmployeeRepository employeeRepository, ILeaveR
      
      private int CalculateBusinessDays(DateTime startDate, DateTime endDate)
      {
+          
+          if (endDate < startDate)
+               throw new ArgumentException("End date must be greater than or equal to start date.");
+          
           int businessDays = 0;
           DateTime current = startDate;
           while (current <= endDate)
