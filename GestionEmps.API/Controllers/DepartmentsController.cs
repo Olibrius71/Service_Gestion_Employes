@@ -79,5 +79,13 @@ public class DepartmentsController(IDepartmentService departmentService) : Contr
         if (!ok) return NotFound();
         return NoContent();
     }
+
+    [HttpPost("import-excel")]
+    public async Task<IActionResult> ImportExcel(IFormFile file)
+    {
+        var ok = await departmentService.ImportExcel(file);
+        if (ok) return NotFound();
+        return Ok();
+    }
 }
 

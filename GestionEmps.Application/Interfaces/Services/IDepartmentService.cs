@@ -46,5 +46,7 @@ public interface IDepartmentService
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation. The task result indicates whether the deletion was successful.</returns>
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
+    
+    Task<bool> ImportExcel(IFormFile file);
 }
 

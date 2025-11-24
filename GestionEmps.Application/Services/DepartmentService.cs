@@ -11,7 +11,7 @@ namespace SGE.Application.Services;
 /// Implements the <see cref="IDepartmentService"/> interface and uses the
 /// <see cref="IDepartmentRepository"/> for data access.
 /// </summary>
-public class DepartmentService(IDepartmentRepository departmentRepository, IMapper mapper) : IDepartmentService
+public class DepartmentService(IDepartmentRepository departmentRepository, IMapper mapper, IExcelService excelService) : IDepartmentService
 {
     /// <summary>
     /// Retrieves all department records asynchronously.
@@ -91,5 +91,13 @@ public class DepartmentService(IDepartmentRepository departmentRepository, IMapp
         await departmentRepository.DeleteAsync(entity.Id, cancellationToken);
         return true;
     }
+
+
+    public async Task<bool> ImportExcel(IFormFile file)
+    {
+       // if (!excelService.IsFileExcel(file)) return true;
+        return false;
+    }
+    
 }
 

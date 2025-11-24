@@ -1,3 +1,4 @@
+using GestionEmps.API.Middlewares;
 using Microsoft.EntityFrameworkCore;
 using SGE.Application.Interfaces.Repositories;
 using SGE.Application.Interfaces.Services;
@@ -32,6 +33,8 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -43,6 +46,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.MapControllers();
 
