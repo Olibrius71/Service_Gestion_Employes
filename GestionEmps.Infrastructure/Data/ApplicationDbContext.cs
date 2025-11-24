@@ -1,9 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using GestionEmps.Core.Entities;
 
 namespace GestionEmps.Infrastructure.Data;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
     
@@ -11,9 +13,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<Employee> Employees { get; set; }
     public DbSet<Attendance> Attendances { get; set; }
     public DbSet<LeaveRequest> LeaveRequests { get; set; }
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        
         // Configuration Department
         builder.Entity<Department>(entity =>
         {
@@ -31,8 +35,7 @@ public class ApplicationDbContext : DbContext
             e.FirstName).IsRequired().HasMaxLength(50);
             entity.Property(e =>
             e.LastName).IsRequired().HasMaxLength(50);
-            entity.Property(e =>
-            e.Email).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
             entity.Property(e =>
             e.Salary).HasColumnType("decimal(18,2)");
             entity.HasIndex(e => e.Email).IsUnique();
@@ -41,6 +44,7 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(e => e.DepartmentId)
             .OnDelete(DeleteBehavior.Restrict);
         });
+        
         // Configuration Attendance
         builder.Entity<Attendance>(entity =>
         {
@@ -72,5 +76,35 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(lr => lr.EmployeeId)
             .OnDelete(DeleteBehavior.Cascade);
         });
+        
+        builder.Entity<ApplicationUser>(entity =>
+        {
+            entity.Property(u => u.FirstName).HasMaxLength(50);
+            entity.Property(u => u.LastName).HasMaxLength(50);
+            entity.Property(u => u.CreatedAt);
+        });
+        
+        builder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasKey(rt => rt.Id);
+            entity.Property(rt =>
+            rt.Token).IsRequired().HasMaxLength(500);
+            entity.Property(rt => rt.CreatedAt);
+            entity.HasOne(rt => rt.User)
+            .WithMany(u => u.RefreshTokens)
+            .HasForeignKey(rt => rt.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(rt => rt.Token).IsUnique();
+            entity.HasIndex(rt => new { rt.UserId, rt.CreatedAt });
+        });
+        
+        builder.Entity<IdentityRole>().HasData(
+            new IdentityRole { Id = "1", Name = "Admin", NormalizedName =
+            "ADMIN" },
+            new IdentityRole { Id = "2", Name = "Manager", NormalizedName
+            = "MANAGER" },
+            new IdentityRole { Id = "3", Name = "User", NormalizedName =
+            "USER" }
+        );
     }
 }
