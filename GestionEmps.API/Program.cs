@@ -22,10 +22,16 @@ builder.Services.AddAutoMapper(cfg => { }, typeof(MappingProfile).Assembly);
 // Enregistrer les repositories
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+builder.Services.AddScoped<ILeaveRequestRepository, LeaveRequestRepository>();
 
 // Enregistrer les services
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+builder.Services.AddScoped<IAttendanceService, AttendanceService>();
+builder.Services.AddScoped<ILeaveRequestService, LeaveRequestService>();
+
+
 builder.Services.AddScoped<IExcelService, ExcelService>();
 
 // Add services to the container.

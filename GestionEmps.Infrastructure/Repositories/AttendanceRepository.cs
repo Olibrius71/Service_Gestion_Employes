@@ -1,8 +1,9 @@
-﻿using SGE.Core.Entities;
+﻿using SGE.Application.Interfaces.Repositories;
+using SGE.Core.Entities;
 using SGE.Infrastructure.Data;
 using SGE.Infrastructure.Repositories;
 
-public class AttendanceRepository : Repository<Attendance>
+public class AttendanceRepository : Repository<Attendance>, IAttendanceRepository
 {
     public AttendanceRepository(ApplicationDbContext context) : base(context) { }
 
