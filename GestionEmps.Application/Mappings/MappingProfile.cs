@@ -31,6 +31,26 @@ public class MappingProfile : Profile
                                 
                 return true;
             }));
+        
+        
+        // Attendance mappings
+        CreateMap<AttendanceCreateDto, Attendance>()
+            .ForMember(dest => dest.BreakDuration, opt => opt.MapFrom(src =>
+                TimeSpan.FromHours(src.BreakDurationHours)));
+        CreateMap<Attendance, AttendanceDto>()
+            .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src =>
+                $"{src.Employee.FirstName} {src.Employee.LastName}"));
+        
+        
+        // Leave Request mappings
+        CreateMap<LeaveRequestCreateDto, LeaveRequest>();
+        CreateMap<LeaveRequest, LeaveRequestDto>()
+            .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src
+                => $"{src.Employee.FirstName} {src.Employee.LastName}"))
+            .ForMember(dest => dest.LeaveTypeName, opt =>
+                opt.MapFrom(src => src.LeaveType.ToString()))
+            .ForMember(dest => dest.StatusName, opt => opt.MapFrom(src
+                => src.Status.ToString()));
     }
 }
 

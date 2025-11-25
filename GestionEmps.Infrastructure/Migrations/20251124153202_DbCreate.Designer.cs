@@ -12,8 +12,8 @@ using SGE.Infrastructure.Data;
 namespace GestionEmps.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251016074150_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251124153202_DbCreate")]
+    partial class DbCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
