@@ -1,0 +1,16 @@
+meta {
+  name: Get Pending Leave Requests
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base_url}}/api/LeaveRequests/pending
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+

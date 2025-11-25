@@ -1,0 +1,16 @@
+meta {
+  name: Get Attendance By Id
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}/api/Attendances/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+

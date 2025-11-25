@@ -1,0 +1,43 @@
+meta {
+  name: Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "admin@example.com",
+    "password": "Admin123!"
+  }
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("Response has access token", function() {
+    expect(res.body.accessToken).to.exist;
+    bru.setVar("access_token", res.body.accessToken);
+  });
+  
+  test("Response has refresh token", function() {
+    expect(res.body.refreshToken).to.exist;
+    bru.setVar("refresh_token", res.body.refreshToken);
+  });
+  
+  test("Response has user", function() {
+    expect(res.body.user).to.exist;
+  });
+  
+  test("User has roles", function() {
+    expect(res.body.user.roles).to.be.an('array');
+  });
+}
+

@@ -1,0 +1,26 @@
+meta {
+  name: Revoke Token
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/api/auth/revoke
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+body:json {
+  "{{refresh_token}}"
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+}
+

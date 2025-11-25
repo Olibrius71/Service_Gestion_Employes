@@ -1,0 +1,21 @@
+meta {
+  name: Get Employee Attendances
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base_url}}/api/Attendances/employee/1?startDate=2024-10-01&endDate=2024-10-31
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+query {
+  startDate: 2024-10-01
+  endDate: 2024-10-31
+}
+

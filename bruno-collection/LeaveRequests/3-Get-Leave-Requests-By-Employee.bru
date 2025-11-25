@@ -1,0 +1,16 @@
+meta {
+  name: Get Leave Requests By Employee
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/api/LeaveRequests/employee/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+

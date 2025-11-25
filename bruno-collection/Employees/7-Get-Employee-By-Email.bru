@@ -5,8 +5,12 @@ meta {
 }
 
 get {
-  url: http://localhost:8005/api/employees/by-email/john.doe@example.com
+  url: {{base_url}}/api/employees/by-email/john.doe@example.com
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
 }
 

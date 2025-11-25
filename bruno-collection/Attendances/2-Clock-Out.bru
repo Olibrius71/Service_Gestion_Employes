@@ -1,0 +1,24 @@
+meta {
+  name: Clock Out
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/Attendances/clock-out
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+body:json {
+  {
+    "employeeId": 1,
+    "dateTime": "{{$datetime}}",
+    "notes": "Clock out via API"
+  }
+}
+

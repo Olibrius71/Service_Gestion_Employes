@@ -1,0 +1,16 @@
+meta {
+  name: Get Today Attendance
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{base_url}}/api/Attendances/employee/1/today
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+

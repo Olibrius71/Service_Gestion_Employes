@@ -19,8 +19,9 @@ public interface IEmployeeService
     /// </summary>
     /// <param name="id">The unique identifier of the employee to retrieve.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
-    /// <returns>A task representing the asynchronous operation. The task result contains the <see cref="EmployeeDto"/> for the specified identifier, or null if not found.</returns>
-    Task<EmployeeDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    /// <returns>A task representing the asynchronous operation. The task result contains the <see cref="EmployeeDto"/> for the specified identifier.</returns>
+    /// <exception cref="SGE.Core.Exceptions.EmployeeNotFoundException">Thrown when the employee with the specified ID is not found.</exception>
+    Task<EmployeeDto> GetByIdAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously retrieves a paginated list of employees.

@@ -1,0 +1,34 @@
+meta {
+  name: Update Current User
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{base_url}}/api/auth/me
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+body:json {
+  {
+    "firstName": "John Updated",
+    "lastName": "Doe Updated"
+  }
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("User data is updated", function() {
+    expect(res.body.firstName).to.equal("John Updated");
+    expect(res.body.lastName).to.equal("Doe Updated");
+  });
+}
+

@@ -3,6 +3,7 @@ using SGE.Application.DTOs;
 using SGE.Application.Interfaces.Repositories;
 using SGE.Application.Interfaces.Services;
 using SGE.Core.Entities;
+using SGE.Core.Exceptions;
 
 namespace SGE.Application.Services;
 
@@ -30,10 +31,13 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
     /// <param name="id">The unique identifier of the employee.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>An employee data transfer object if found; otherwise, null.</returns>
-    public async Task<EmployeeDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<EmployeeDto> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var employee = await employeeRepository.GetWithDepartmentAsync(id, cancellationToken);
-        return employee == null ? null : mapper.Map<EmployeeDto>(employee);
+        if (employee == null)
+            throw new EmployeeNotFoundException(id);
+        
+        return mapper.Map<EmployeeDto>(employee);
     }
 
     /// <summary>
@@ -61,14 +65,18 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
         // Vérifier si l'email existe déjà
         var existingEmail = await employeeRepository.GetByEmailAsync(dto.Email, cancellationToken);
         if (existingEmail != null)
-            throw new ApplicationException("Email already exists");
+            throw new DuplicateEmployeeEmailException(dto.Email);
 
         // Vérifier si le département existe
         var departmentExists = await departmentRepository.ExistsAsync(dto.DepartmentId, cancellationToken);
         if (!departmentExists)
-            throw new ApplicationException("Department does not exist");
+            throw new DepartmentNotFoundException(dto.DepartmentId);
 
         var entity = mapper.Map<Employee>(dto);
+        entity.CreatedAt = DateTime.UtcNow;
+        entity.UpdatedAt = DateTime.UtcNow;
+        entity.CreatedBy = "System";
+        entity.UpdatedBy = "System";
         await employeeRepository.AddAsync(entity, cancellationToken);
 
         return mapper.Map<EmployeeDto>(entity);
@@ -85,14 +93,15 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
     public async Task<bool> UpdateAsync(int id, EmployeeUpdateDto dto, CancellationToken cancellationToken = default)
     {
         var entity = await employeeRepository.GetByIdAsync(id, cancellationToken);
-        if (entity == null) return false;
+        if (entity == null)
+            throw new EmployeeNotFoundException(id);
 
         // Si l'email est modifié, vérifier qu'il n'existe pas déjà
         if (!string.IsNullOrEmpty(dto.Email) && dto.Email != entity.Email)
         {
             var existingEmail = await employeeRepository.GetByEmailAsync(dto.Email, cancellationToken);
             if (existingEmail != null)
-                throw new ApplicationException("Email already exists");
+                throw new DuplicateEmployeeEmailException(dto.Email);
         }
 
         // Si le département est modifié, vérifier qu'il existe
@@ -100,7 +109,7 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
         {
             var departmentExists = await departmentRepository.ExistsAsync(dto.DepartmentId.Value, cancellationToken);
             if (!departmentExists)
-                throw new ApplicationException("Department does not exist");
+                throw new DepartmentNotFoundException(dto.DepartmentId.Value);
         }
         
         if (!string.IsNullOrEmpty(dto.FirstName))
@@ -127,6 +136,9 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
         if (dto.DepartmentId.HasValue)
             entity.DepartmentId = dto.DepartmentId.Value;
         
+        entity.UpdatedAt = DateTime.UtcNow;
+        entity.UpdatedBy = "System";
+        
         // Sauvegarder les changements (l'entité est déjà trackée par EF Core)
         await employeeRepository.UpdateAsync(entity, cancellationToken);
 
@@ -142,7 +154,8 @@ public class EmployeeService(IEmployeeRepository employeeRepository, IDepartment
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
         var entity = await employeeRepository.GetByIdAsync(id, cancellationToken);
-        if (entity == null) return false;
+        if (entity == null)
+            throw new EmployeeNotFoundException(id);
 
         await employeeRepository.DeleteAsync(entity.Id, cancellationToken);
         return true;

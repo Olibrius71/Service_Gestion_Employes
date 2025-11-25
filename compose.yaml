@@ -1,6 +1,6 @@
 ﻿services:
   sge.postgres:
-    image: postgres:latest # Utilise la dernière version de l'image officielle PostgreSQL
+    image: postgres:15 # Utilise PostgreSQL 15 pour éviter les problèmes de compatibilité
     container_name: sge_postgres
     environment: # Variables d'environnement pour créer la DB + user
       POSTGRES_DB: sgedb

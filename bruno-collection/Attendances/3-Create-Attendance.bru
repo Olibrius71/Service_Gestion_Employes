@@ -1,0 +1,27 @@
+meta {
+  name: Create Attendance
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/Attendances
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+body:json {
+  {
+    "employeeId": 1,
+    "date": "2024-10-17",
+    "clockIn": "08:00:00",
+    "clockOut": "17:00:00",
+    "breakDurationHours": 1.0,
+    "notes": "Full day work"
+  }
+}
+

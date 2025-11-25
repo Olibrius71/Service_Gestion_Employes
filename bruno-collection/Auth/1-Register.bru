@@ -1,0 +1,42 @@
+meta {
+  name: Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com",
+    "userName": "johndoe",
+    "password": "Password123",
+    "confirmPassword": "Password123",
+    "employeeId": null
+  }
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("Response has access token", function() {
+    expect(res.body.accessToken).to.exist;
+  });
+  
+  test("Response has refresh token", function() {
+    expect(res.body.refreshToken).to.exist;
+  });
+  
+  test("Response has user", function() {
+    expect(res.body.user).to.exist;
+  });
+}
+

@@ -5,9 +5,13 @@ meta {
 }
 
 put {
-  url: http://localhost:8005/api/employees/1
+  url: {{base_url}}/api/employees/1
   body: json
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
 }
 
 headers {

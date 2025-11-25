@@ -1,0 +1,23 @@
+meta {
+  name: Update Leave Request Status
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{base_url}}/api/LeaveRequests/1/status
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+body:json {
+  {
+    "status": 2,
+    "managerComments": "Approved - Enjoy your vacation!"
+  }
+}
+

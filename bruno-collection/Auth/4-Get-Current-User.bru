@@ -1,0 +1,32 @@
+meta {
+  name: Get Current User
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}/api/auth/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("Response has user data", function() {
+    expect(res.body.id).to.exist;
+    expect(res.body.email).to.exist;
+    expect(res.body.userName).to.exist;
+  });
+  
+  test("User has roles", function() {
+    expect(res.body.roles).to.be.an('array');
+  });
+}
+

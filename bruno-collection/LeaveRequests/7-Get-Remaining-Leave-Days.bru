@@ -1,0 +1,16 @@
+meta {
+  name: Get Remaining Leave Days
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{base_url}}/api/LeaveRequests/employee/1/remaining/2024
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+

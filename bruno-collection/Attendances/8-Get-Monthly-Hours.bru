@@ -1,0 +1,16 @@
+meta {
+  name: Get Monthly Hours
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_url}}/api/Attendances/employee/1/hours/2024/10
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+

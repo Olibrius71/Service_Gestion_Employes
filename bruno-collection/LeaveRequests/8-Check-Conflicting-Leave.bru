@@ -1,0 +1,22 @@
+meta {
+  name: Check Conflicting Leave
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_url}}/api/LeaveRequests/employee/1/conflicts?startDate=2024-10-20&endDate=2024-10-25
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+query {
+  startDate: 2024-10-20
+  endDate: 2024-10-25
+  ~excludeRequestId: 1
+}
+

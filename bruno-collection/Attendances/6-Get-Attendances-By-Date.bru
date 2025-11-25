@@ -1,0 +1,16 @@
+meta {
+  name: Get Attendances By Date
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/api/Attendances/date/2024-10-17
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+

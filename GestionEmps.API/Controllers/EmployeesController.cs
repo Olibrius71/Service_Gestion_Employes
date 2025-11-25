@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SGE.Application.DTOs;
 using SGE.Application.Interfaces.Services;
@@ -10,6 +11,7 @@ namespace SGE.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize] // Tous les endpoints nécessitent une authentification
 public class EmployeesController(IEmployeeService employeeService, IExcelService excelService, IDepartmentService departmentService) : ControllerBase
 {
     /// <summary>
@@ -20,6 +22,7 @@ public class EmployeesController(IEmployeeService employeeService, IExcelService
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>An <see cref="ActionResult"/> containing an enumerable collection of <see cref="EmployeeDto"/>.</returns>
     [HttpGet]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<ActionResult<IEnumerable<EmployeeDto>>> GetAll([FromQuery] int? pageIndex, [FromQuery] int? pageSize, CancellationToken cancellationToken)
     {
         if (pageIndex.HasValue && pageSize.HasValue)
@@ -42,7 +45,6 @@ public class EmployeesController(IEmployeeService employeeService, IExcelService
     public async Task<ActionResult<EmployeeDto>> GetById(int id, CancellationToken cancellationToken)
     {
         var employee = await employeeService.GetByIdAsync(id, cancellationToken);
-        if (employee == null) return NotFound();
         return Ok(employee);
     }
 
@@ -84,6 +86,7 @@ public class EmployeesController(IEmployeeService employeeService, IExcelService
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>An <see cref="ActionResult"/> containing the created <see cref="EmployeeDto"/> with its unique identifier and other details.</returns>
     [HttpPost]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<ActionResult<EmployeeDto>> Create(EmployeeCreateDto dto, CancellationToken cancellationToken)
     {
         var created = await employeeService.CreateAsync(dto, cancellationToken);
@@ -98,10 +101,10 @@ public class EmployeesController(IEmployeeService employeeService, IExcelService
     /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IActionResult"/> indicating the result of the update operation. Returns <see cref="NoContentResult"/> if successful, or <see cref="NotFoundResult"/> if the employee is not found.</returns>
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Update(int id, EmployeeUpdateDto dto, CancellationToken cancellationToken)
     {
-        var ok = await employeeService.UpdateAsync(id, dto, cancellationToken);
-        if (!ok) return NotFound();
+        await employeeService.UpdateAsync(id, dto, cancellationToken);
         return NoContent();
     }
 
@@ -112,10 +115,10 @@ public class EmployeesController(IEmployeeService employeeService, IExcelService
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>An <see cref="IActionResult"/> indicating the result of the operation. Returns NoContent if successful, otherwise NotFound if the employee does not exist.</returns>
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        var ok = await employeeService.DeleteAsync(id, cancellationToken);
-        if (!ok) return NotFound();
+        await employeeService.DeleteAsync(id, cancellationToken);
         return NoContent();
     }
 
@@ -127,18 +130,11 @@ public class EmployeesController(IEmployeeService employeeService, IExcelService
     [HttpGet("export")]
     public async Task<IActionResult> ExportToExcel(CancellationToken cancellationToken)
     {
-        try
-        {
-            var employees = await employeeService.GetAllAsync(cancellationToken);
-            var excelBytes = await excelService.ExportEmployeesToExcelAsync(employees, cancellationToken);
+        var employees = await employeeService.GetAllAsync(cancellationToken);
+        var excelBytes = await excelService.ExportEmployeesToExcelAsync(employees, cancellationToken);
 
-            var fileName = $"Employees_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-            return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var fileName = $"Employees_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
 
     /// <summary>
@@ -158,78 +154,47 @@ public class EmployeesController(IEmployeeService employeeService, IExcelService
         if (!file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
             return BadRequest(new { error = "Le fichier doit être au format .xlsx" });
 
-        try
+        using var stream = file.OpenReadStream();
+        var employeeDtos = await excelService.ImportEmployeesFromExcelAsync(stream, cancellationToken);
+
+        var createdEmployees = new List<EmployeeDto>();
+        var updatedEmployees = new List<EmployeeDto>();
+        var errors = new List<string>();
+
+        foreach (var dto in employeeDtos)
         {
-            using var stream = file.OpenReadStream();
-            var employeeDtos = await excelService.ImportEmployeesFromExcelAsync(stream, cancellationToken);
-
-            var createdEmployees = new List<EmployeeDto>();
-            var updatedEmployees = new List<EmployeeDto>();
-            var errors = new List<string>();
-
-            foreach (var dto in employeeDtos)
+            try
             {
-                try
-                {
-                    // Vérifier que le département existe
-                    var department = await departmentService.GetByIdAsync(dto.DepartmentId, cancellationToken);
-                    if (department == null)
-                    {
-                        errors.Add($"Erreur pour {dto.FirstName} {dto.LastName}: Le département avec l'ID {dto.DepartmentId} n'existe pas.");
-                        continue;
-                    }
+                // Vérifier que le département existe
+                var department = await departmentService.GetByIdAsync(dto.DepartmentId, cancellationToken);
 
-                    // Si l'ID est fourni, vérifier s'il existe pour faire un update
-                    if (dto.Id.HasValue && dto.Id.Value > 0)
+                // Si l'ID est fourni, vérifier s'il existe pour faire un update
+                if (dto.Id.HasValue && dto.Id.Value > 0)
+                {
+                    try
                     {
                         var existingEmployee = await employeeService.GetByIdAsync(dto.Id.Value, cancellationToken);
                         
-                        if (existingEmployee != null)
+                        // Update: l'employé existe déjà
+                        var updateDto = new EmployeeUpdateDto
                         {
-                            // Update: l'employé existe déjà
-                            var updateDto = new EmployeeUpdateDto
-                            {
-                                FirstName = dto.FirstName,
-                                LastName = dto.LastName,
-                                Email = dto.Email,
-                                PhoneNumber = dto.PhoneNumber,
-                                Address = dto.Address,
-                                Position = dto.Position,
-                                Salary = dto.Salary,
-                                DepartmentId = dto.DepartmentId
-                            };
+                            FirstName = dto.FirstName,
+                            LastName = dto.LastName,
+                            Email = dto.Email,
+                            PhoneNumber = dto.PhoneNumber,
+                            Address = dto.Address,
+                            Position = dto.Position,
+                            Salary = dto.Salary,
+                            DepartmentId = dto.DepartmentId
+                        };
 
-                            var updated = await employeeService.UpdateAsync(dto.Id.Value, updateDto, cancellationToken);
-                            if (updated)
-                            {
-                                var updatedEmployee = await employeeService.GetByIdAsync(dto.Id.Value, cancellationToken);
-                                if (updatedEmployee != null)
-                                    updatedEmployees.Add(updatedEmployee);
-                            }
-                        }
-                        else
-                        {
-                            // L'ID est fourni mais n'existe pas, créer quand même
-                            var createDto = new EmployeeCreateDto
-                            {
-                                FirstName = dto.FirstName,
-                                LastName = dto.LastName,
-                                Email = dto.Email,
-                                PhoneNumber = dto.PhoneNumber,
-                                Address = dto.Address,
-                                Position = dto.Position,
-                                Salary = dto.Salary,
-                                HireDate = dto.HireDate,
-                                DepartmentId = dto.DepartmentId
-                            };
-
-                            var created = await employeeService.CreateAsync(createDto, cancellationToken);
-                            createdEmployees.Add(created);
-                        }
+                        await employeeService.UpdateAsync(dto.Id.Value, updateDto, cancellationToken);
+                        var updatedEmployee = await employeeService.GetByIdAsync(dto.Id.Value, cancellationToken);
+                        updatedEmployees.Add(updatedEmployee);
                     }
-                    else
+                    catch
                     {
-                        // Pas d'ID: créer un nouvel employé
+                        // L'ID est fourni mais n'existe pas, créer quand même
                         var createDto = new EmployeeCreateDto
                         {
                             FirstName = dto.FirstName,
@@ -247,27 +212,42 @@ public class EmployeesController(IEmployeeService employeeService, IExcelService
                         createdEmployees.Add(created);
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    errors.Add($"Erreur pour {dto.FirstName} {dto.LastName} ({dto.Email}): {ex.Message}");
+                    // Pas d'ID: créer un nouvel employé
+                    var createDto = new EmployeeCreateDto
+                    {
+                        FirstName = dto.FirstName,
+                        LastName = dto.LastName,
+                        Email = dto.Email,
+                        PhoneNumber = dto.PhoneNumber,
+                        Address = dto.Address,
+                        Position = dto.Position,
+                        Salary = dto.Salary,
+                        HireDate = dto.HireDate,
+                        DepartmentId = dto.DepartmentId
+                    };
+
+                    var created = await employeeService.CreateAsync(createDto, cancellationToken);
+                    createdEmployees.Add(created);
                 }
             }
-
-            return Ok(new
+            catch (Exception ex)
             {
-                success = createdEmployees.Count + updatedEmployees.Count,
-                created = createdEmployees.Count,
-                updated = updatedEmployees.Count,
-                failed = errors.Count,
-                createdEmployees,
-                updatedEmployees,
-                errors
-            });
+                errors.Add($"Erreur pour {dto.FirstName} {dto.LastName} ({dto.Email}): {ex.Message}");
+            }
         }
-        catch (Exception ex)
+
+        return Ok(new
         {
-            return BadRequest(new { error = ex.Message });
-        }
+            success = createdEmployees.Count + updatedEmployees.Count,
+            created = createdEmployees.Count,
+            updated = updatedEmployees.Count,
+            failed = errors.Count,
+            createdEmployees,
+            updatedEmployees,
+            errors
+        });
     }
 }
 

@@ -1,0 +1,26 @@
+meta {
+  name: Create Leave Request
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/LeaveRequests
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+body:json {
+  {
+    "employeeId": 1,
+    "leaveType": 1,
+    "startDate": "2024-10-20",
+    "endDate": "2024-10-25",
+    "reason": "Vacation time"
+  }
+}
+
