@@ -1,12 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using GestionEmps.Application.DTOs.Employees;
 using GestionEmps.Application.Interfaces.Services;
 namespace GestionEmps.API.Controllers;
+using GestionEmps.Core.Entities;
+using System.Security.Claims;
+
 /// <summary>
 /// API controller responsible for managing employee-related operations.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class EmployeesController (IEmployeeService employeeService) :
 ControllerBase
 {
@@ -18,6 +23,7 @@ ControllerBase
     /// An asynchronous task that returns an action result containing an enumerable collection of EmployeeDto objects.
     /// </returns>
     [HttpGet]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<ActionResult<IEnumerable<EmployeeDto>>>GetAll(CancellationToken cancellationToken)
     {
         var employees = await employeeService.GetAllAsync(cancellationToken);
@@ -33,6 +39,7 @@ ControllerBase
     /// An asynchronous task that returns an action result containing the employee data transfer object (EmployeeDto) if found; otherwise, a not found result.
     /// </returns>
     [HttpGet("{id:int}")]
+    [Authorize]
     public async Task<ActionResult<EmployeeDto>> GetById(int id, CancellationToken cancellationToken)
     {
         var employee = await employeeService.GetByIdAsync(id, cancellationToken);
@@ -82,6 +89,7 @@ ControllerBase
     /// An asynchronous task that returns an action result containing the created EmployeeDto object.
     /// </returns>
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<EmployeeDto>>Create(EmployeeCreateDto dto, CancellationToken cancellationToken)
     {
         var created = await employeeService.CreateAsync(dto, cancellationToken);
@@ -98,6 +106,7 @@ ControllerBase
     /// An action result indicating the outcome of the update operation. Returns <c>NoContent</c> if the update is successful or <c>NotFound</c> if the employee is not found.
     /// </returns>
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Update(int id, EmployeeUpdateDto dto, CancellationToken cancellationToken)
     {
         var ok = await employeeService.UpdateAsync(id, dto, cancellationToken);
@@ -115,6 +124,7 @@ ControllerBase
     /// An asynchronous task that returns an action result. Returns NoContent when the deletion is successful, or NotFound if the employee does not exist.
     /// </returns>
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var ok = await employeeService.DeleteAsync(id, cancellationToken);

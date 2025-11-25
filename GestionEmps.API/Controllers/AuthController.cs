@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
 using GestionEmps.Application.DTOs;
 using GestionEmps.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GestionEmps.API.Controllers;
 
@@ -9,6 +11,7 @@ namespace GestionEmps.API.Controllers;
 public class AuthController(IAuthService authService) : ControllerBase
 {
     [HttpPost("register")]
+    [AllowAnonymous]
     public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto registerDto)
     {
         var result = await authService.RegisterAsync(registerDto);
@@ -16,6 +19,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     }
     
     [HttpPost("login")]
+    [AllowAnonymous]   
     public async Task<ActionResult<AuthResponseDto>> Login(LoginDto loginDto)
     {
         var result = await authService.LoginAsync(loginDto);
@@ -23,17 +27,23 @@ public class AuthController(IAuthService authService) : ControllerBase
     }
     
     [HttpPost("refresh")]
+    [AllowAnonymous]
     public async Task<ActionResult<AuthResponseDto>> RefreshToken(RefreshTokenDto refreshTokenDto)
     {
-        var result = await
-            authService.RefreshTokenAsync(refreshTokenDto);
+        var result = await authService.RefreshTokenAsync(refreshTokenDto);
         return Ok(result);
     }
     
-    [HttpPost("logout/{userId:int}")]
-    public async Task<ActionResult> Logout(int userId)
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<ActionResult> Logout()
     {
-        await authService.LogoutAsync(userId.ToString());
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        
+        if (userId == null)
+            return Unauthorized();
+        
+        await authService.LogoutAsync(userId);
         return Ok(new { message = "Déconnexion réussie" });
     }
 }

@@ -7,8 +7,7 @@ namespace GestionEmps.Infrastructure.Repositories;
 /// Provides a concrete implementation of <see cref="IEmployeeRepository"/> for managing employee data.
 /// This repository extends the generic <see cref="Repository{T}"/> class for the <see cref="Employee"/> entity.
 /// </summary>
-public class EmployeeRepository : Repository<Employee>,
-IEmployeeRepository
+public class EmployeeRepository : Repository<Employee>, IEmployeeRepository
 {
 /// <summary>
 /// Represents a repository for performing data access operations specific to the <see cref="Employee"/> entity.

@@ -145,8 +145,8 @@ public class AuthService(UserManager<ApplicationUser> userManager, ITokenService
     public async Task<bool> LogoutAsync(string userId)
     {
         // Ici revoke tous les refresh tokens de l'utilisateur
-        //TODO
-        throw new NotImplementedException();
+        await tokenService.RevokeAllUserRefreshTokensAsync(userId);
+        return true;
     }
     
     /// <summary>
@@ -157,8 +157,8 @@ public class AuthService(UserManager<ApplicationUser> userManager, ITokenService
     public async Task<bool> RevokeTokenAsync(string token)
     {
         // Ici revoke le token
-        //TODO
-        throw new NotImplementedException();
+        await tokenService.RevokeRefreshTokenAsync(token, "Révocation manuelle");
+        return true;
     }
     
     /// <summary>
@@ -169,7 +169,15 @@ public class AuthService(UserManager<ApplicationUser> userManager, ITokenService
     public async Task<UserDto?> GetCurrentUserAsync(string userId)
     {
         //Les informations de l'utilisateur
-        //TODO
-        throw new NotImplementedException();
+        var user = await userManager.FindByIdAsync(userId);
+        if (user == null) 
+            return null;
+
+        var roles = await userManager.GetRolesAsync(user);
+
+        var userDto = mapper.Map<UserDto>(user);
+        userDto.Roles = roles;
+
+        return userDto;
     }
 }

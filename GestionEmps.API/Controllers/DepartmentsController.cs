@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using GestionEmps.Application.DTOs;
 using GestionEmps.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GestionEmps.API.Controllers;
 /// <summary>
@@ -9,6 +10,7 @@ namespace GestionEmps.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize] 
 public class DepartmentsController(IDepartmentService departmentService) : ControllerBase
 {
     /// <summary>
@@ -17,6 +19,7 @@ public class DepartmentsController(IDepartmentService departmentService) : Contr
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>An <see cref="ActionResult"/> containing an enumerable collection of <see cref="DepartmentDto"/>.</returns>
     [HttpGet]
+    [Authorize(Roles = "Admin,Manager,User")]
     public async Task<ActionResult<IEnumerable<DepartmentDto>>> GetAll(CancellationToken cancellationToken)
     {
         var depts = await departmentService.GetAllAsync(cancellationToken);
@@ -30,6 +33,7 @@ public class DepartmentsController(IDepartmentService departmentService) : Contr
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>An <see cref="ActionResult"/> containing the <see cref="DepartmentDto"/> of the specified department if found, otherwise a NotFound result.</returns>
     [HttpGet("{id:int}")]
+    [Authorize(Roles = "Admin,Manager,User")]
     public async Task<ActionResult<DepartmentDto>> GetById(int id, CancellationToken cancellationToken)
     {
         var dept = await departmentService.GetByIdAsync(id,
@@ -46,6 +50,7 @@ public class DepartmentsController(IDepartmentService departmentService) : Contr
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>An <see cref="ActionResult"/> containing the created <see cref="DepartmentDto"/> with its unique identifier and other details.</returns>
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<DepartmentDto>> Create(DepartmentCreateDto dto, CancellationToken cancellationToken)
     {
         var created = await departmentService.CreateAsync(dto, cancellationToken);
@@ -60,6 +65,7 @@ public class DepartmentsController(IDepartmentService departmentService) : Contr
     /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IActionResult"/> indicating the result of the update operation. Returns <see cref="NoContentResult"/> if successful, or <see cref="NotFoundResult"/> if the department is not found.</returns>
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> Update(int id, DepartmentUpdateDto dto, CancellationToken cancellationToken)
     {
         var ok = await departmentService.UpdateAsync(id, dto, cancellationToken);
@@ -74,6 +80,7 @@ public class DepartmentsController(IDepartmentService departmentService) : Contr
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>An <see cref="IActionResult"/> indicating the result of the operation. Returns NoContent if successful, otherwise NotFound if the department does not exist.</returns>
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var ok = await departmentService.DeleteAsync(id, cancellationToken);

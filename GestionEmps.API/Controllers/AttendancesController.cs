@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using GestionEmps.Application.DTOs;
 using GestionEmps.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GestionEmps.API.Controllers;
 
@@ -11,6 +12,7 @@ namespace GestionEmps.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class AttendancesController(IAttendanceService attendanceService) : ControllerBase
 {
     /// <summary>
@@ -22,6 +24,7 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     [HttpPost("clock-in")]
     [ProducesResponseType(200, Type = typeof(AttendanceDto))]
     [ProducesResponseType(400)]
+    [Authorize]
     public async Task<ActionResult<AttendanceDto>> ClockIn([FromBody] ClockInOutDto clockInDto, CancellationToken cancellationToken)
     {
         var attendance = await attendanceService.ClockInAsync(clockInDto, cancellationToken);
@@ -37,6 +40,7 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     [HttpPost("clock-out")]
     [ProducesResponseType(200, Type = typeof(AttendanceDto))]
     [ProducesResponseType(400)]
+    [Authorize]
     public async Task<ActionResult<AttendanceDto>> ClockOut([FromBody] ClockInOutDto clockOutDto, CancellationToken cancellationToken)
     {
         var attendance = await attendanceService.ClockOutAsync(clockOutDto, cancellationToken);
@@ -52,6 +56,7 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     [HttpPost]
     [ProducesResponseType(201, Type = typeof(AttendanceDto))]
     [ProducesResponseType(400)]
+    [Authorize]
     public async Task<ActionResult<AttendanceDto>>
     CreateAttendance([FromBody] AttendanceCreateDto createAttendanceDto, CancellationToken cancellationToken)
     {
@@ -68,6 +73,7 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     [HttpGet("{id:int}")]
     [ProducesResponseType(200, Type = typeof(AttendanceDto))]
     [ProducesResponseType(404)]
+    [Authorize]
     public async Task<ActionResult<AttendanceDto>> GetAttendance(int id, CancellationToken cancellationToken)
     {
         var attendance = await attendanceService.GetAttendanceByIdAsync(id, cancellationToken);
@@ -87,6 +93,7 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     [HttpGet("employee/{employeeId:int}")]
     [ProducesResponseType(200, Type =
     typeof(IEnumerable<AttendanceDto>))]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<ActionResult<IEnumerable<AttendanceDto>>>
     GetEmployeeAttendances(int employeeId, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, CancellationToken cancellationToken = default)
     {
@@ -103,6 +110,7 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     [HttpGet("date/{date:datetime}")]
     [ProducesResponseType(200, Type =
     typeof(IEnumerable<AttendanceDto>))]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<ActionResult<IEnumerable<AttendanceDto>>>
     GetAttendancesByDate(DateTime date, CancellationToken cancellationToken)
     {
@@ -119,6 +127,7 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     [HttpGet("employee/{employeeId:int}/today")]
     [ProducesResponseType(200, Type = typeof(AttendanceDto))]
     [ProducesResponseType(404)]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<ActionResult<AttendanceDto>>
     GetTodayAttendance(int employeeId, CancellationToken cancellationToken)
     {
@@ -138,6 +147,7 @@ public class AttendancesController(IAttendanceService attendanceService) : Contr
     /// <returns>Returns the total hours worked by the employee as a decimal value.</returns>
     [HttpGet("employee/{employeeId:int}/hours/{year:int}/{month:int}")]
     [ProducesResponseType(200, Type = typeof(decimal))]
+    [Authorize(Roles = "Admin,Manager")]
     public async Task<ActionResult<decimal>> GetMonthlyHours(int employeeId, int year, int month, CancellationToken cancellationToken)
     {
         var totalHours = await attendanceService.GetMonthlyWorkedHoursAsync(employeeId, year, month, cancellationToken);

@@ -1,16 +1,30 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
+using GestionEmps.Application.Interfaces.Repositories;
 using GestionEmps.Application.Interfaces.Services;
 using GestionEmps.Core.Entities;
 
 namespace GestionEmps.Application.Services;
 
-public class TokenService (IConfiguration configuration, JwtSecurityTokenHandler tokenHandler ) : ITokenService
+public class TokenService : ITokenService
 {
+    private readonly IConfiguration configuration;
+    private readonly JwtSecurityTokenHandler tokenHandler;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
+
+    public TokenService(
+        IConfiguration configuration,
+        JwtSecurityTokenHandler tokenHandler,
+        IRefreshTokenRepository refreshTokenRepository)
+    {
+        this.configuration = configuration;
+        this.tokenHandler = tokenHandler;
+        this._refreshTokenRepository = refreshTokenRepository;
+    }
     /// <summary>
     /// Generates a JSON Web Token (JWT) access token for a specified user and their associated roles.
     /// </summary>
@@ -101,25 +115,65 @@ public class TokenService (IConfiguration configuration, JwtSecurityTokenHandler
     
     public async Task<RefreshToken> CreateRefreshTokenAsync(string userId)
     {
-        //TODO
-        throw new NotImplementedException();
+        var jwtSettings = configuration.GetSection("JwtSettings");
+        var expirationDays = int.Parse(jwtSettings["RefreshTokenExpiration"]);
+
+        var refreshToken = new RefreshToken
+        {
+            Token = GenerateRefreshToken(),
+            UserId = userId,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(expirationDays)
+        };
+
+        await _refreshTokenRepository.AddAsync(refreshToken);
+        await _refreshTokenRepository.SaveChangesAsync();
+
+        return refreshToken;
     }
     
     public async Task<bool> ValidateRefreshTokenAsync(string token, string userId)
     {
-        //TODO
-        throw new NotImplementedException();
+        var refreshToken = await _refreshTokenRepository.GetByTokenAsync(token);
+
+        if (refreshToken == null)
+            return false;
+
+        if (refreshToken.UserId != userId)
+            return false;
+
+        if (!refreshToken.IsActive)
+            return false;
+
+        return true;
     }
     
     public async Task RevokeRefreshTokenAsync(string token, string reason)
     {
-        //TODO
-        throw new NotImplementedException();
+        var refreshToken = await _refreshTokenRepository.GetByTokenAsync(token);
+        if (refreshToken == null)
+            return;
+
+        refreshToken.RevokedAt = DateTime.UtcNow;
+        refreshToken.ReasonRevoked = reason;
+
+        _refreshTokenRepository.Update(refreshToken);
+        await _refreshTokenRepository.SaveChangesAsync();
     }
     
     public async Task RevokeAllUserRefreshTokensAsync(string userId)
     {
-        //TODO
-        throw new NotImplementedException();
+        var tokens = await _refreshTokenRepository.GetActiveTokensByUserAsync(userId);
+        if (!tokens.Any())
+            return;
+
+        foreach (var token in tokens)
+        {
+            token.RevokedAt = DateTime.UtcNow;
+            token.ReasonRevoked = "Déconnexion utilisateur";
+            _refreshTokenRepository.Update(token);
+        }
+
+        await _refreshTokenRepository.SaveChangesAsync();
     }
 }
